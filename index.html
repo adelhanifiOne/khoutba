@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Khoutba — enregistre, comprends, retiens</title>
+  <meta name="description" content="Enregistre le prêche du vendredi à la mosquée, puis obtiens la transcription arabe, la traduction française et un résumé clair. Tout reste sur ton téléphone." />
+  <meta name="theme-color" content="#0f6b4f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Khoutba" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <main id="app" aria-live="polite">
+    <p class="chargement">Chargement…</p>
+  </main>
+
+  <!-- Voile plein écran pendant l'enregistrement -->
+  <div id="voile-enregistrement" class="voile" role="dialog" aria-label="Enregistrement en cours">
+    <div class="panneau-enregistrement">
+      <div class="point-rouge" aria-hidden="true"></div>
+      <p class="titre-enregistrement">Enregistrement en cours</p>
+      <div id="chrono" class="chrono">0:00</div>
+      <canvas id="vumetre" width="288" height="56" aria-hidden="true"></canvas>
+      <p class="conseil-ecran">Garde l'écran allumé et l'app ouverte pendant le prêche.</p>
+      <div class="commandes">
+        <button id="btn-annuler" class="btn-secondaire">Annuler</button>
+        <button id="btn-pause" class="btn-secondaire">Pause</button>
+        <button id="btn-stop" class="btn-stop">Terminer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
