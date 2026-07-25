@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../enregistreur.dart';
 import '../etat.dart';
+import '../import_media.dart';
 import '../modeles.dart';
 import '../theme.dart';
 import 'detail.dart';
@@ -113,6 +114,57 @@ class _EcranAccueilState extends State<EcranAccueil> {
       context,
       MaterialPageRoute(builder: (_) => EcranDetail(idEnregistrement: rec.id)),
     ).then((_) => mounted ? setState(() {}) : null);
+  }
+
+  // ------------------------------------------------------------------ import
+
+  /// Propose les deux sources : l'app Fichiers ne montre pas les vidéos de la
+  /// galerie sur iPhone, et inversement.
+  Future<void> _importer() async {
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: const Text('Fichiers'),
+              subtitle: const Text('Audio ou vidéo — dictaphone, WhatsApp, iCloud…'),
+              onTap: () => Navigator.pop(c, 'fichiers'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.perm_media_outlined),
+              title: const Text('Galerie'),
+              subtitle: const Text('Une vidéo filmée avec le téléphone'),
+              onTap: () => Navigator.pop(c, 'galerie'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    try {
+      final fichier = source == 'galerie'
+          ? await choisirVideoGalerie()
+          : await choisirDansFichiers();
+      if (fichier == null) return; // annulé
+
+      if (mounted) _message('Import en cours…');
+      final rec = await importer(fichier);
+      await etat.rafraichir();
+      if (!mounted) return;
+      setState(() {});
+      _message('Fichier importé ✓');
+      _ouvrir(rec);
+    } on ErreurImport catch (e) {
+      _message(e.message);
+    } catch (e) {
+      _message("Import impossible : $e");
+    }
   }
 
   @override
@@ -267,6 +319,13 @@ class _EcranAccueilState extends State<EcranAccueil> {
           const SizedBox(height: 12),
           Text('Appuie pour enregistrer le prêche',
               style: TextStyle(color: Theme.of(context).hintColor)),
+          const SizedBox(height: 2),
+          TextButton.icon(
+            onPressed: _importer,
+            icon: const Icon(Icons.file_upload_outlined, size: 18),
+            label: const Text('ou importer un audio / une vidéo'),
+            style: TextButton.styleFrom(foregroundColor: accentTexte(context)),
+          ),
         ],
       ),
     );

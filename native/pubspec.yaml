@@ -20,6 +20,10 @@ dependencies:
   permission_handler: ^12.0.3
   # Lecture des enregistrements
   just_audio: ^0.10.6
+  # Import depuis l'app Fichiers (paquet officiel Flutter)
+  file_selector: ^1.1.0
+  # Import d'une vidéo depuis la galerie (Photos sur iPhone)
+  image_picker: ^1.2.3
 
   # Stockage
   path_provider: ^2.1.6

@@ -59,29 +59,59 @@ ErreurIA _erreurHttp(String nom, int statut, String corps) {
 Never _erreurReseau(String nom) =>
     throw ErreurIA('$nom : impossible de joindre le service. Vérifie ta connexion internet.');
 
-/// Type MIME « propre » pour les API (sans ;codecs=…).
+/// Type MIME du fichier, déduit de son extension.
+///
+/// La distinction audio / vidéo compte : Gemini accepte les deux, mais refuse
+/// une vidéo annoncée comme de l'audio.
 String mimeSimple(String chemin) {
   final ext = chemin.toLowerCase().split('.').last;
   switch (ext) {
+    // Audio
     case 'm4a':
-    case 'mp4':
-    case 'aac':
+    case 'caf':
       return 'audio/mp4';
+    case 'aac':
+      return 'audio/aac';
     case 'mp3':
+    case 'mpga':
       return 'audio/mpeg';
     case 'wav':
       return 'audio/wav';
     case 'ogg':
+    case 'oga':
     case 'opus':
       return 'audio/ogg';
     case 'flac':
       return 'audio/flac';
+    case 'amr':
+      return 'audio/amr';
     case 'webm':
       return 'audio/webm';
+    // Vidéo — la piste sonore est extraite par le service
+    case 'mp4':
+    case 'm4v':
+      return 'video/mp4';
+    case 'mov':
+      return 'video/quicktime';
+    case '3gp':
+      return 'video/3gpp';
+    case 'avi':
+      return 'video/x-msvideo';
+    case 'mkv':
+      return 'video/x-matroska';
+    case 'mpeg':
+    case 'mpg':
+      return 'video/mpeg';
     default:
       return 'audio/mp4';
   }
 }
+
+/// Extensions acceptées par Whisper (OpenAI). Les autres doivent passer par
+/// Gemini, qui prend la vidéo nativement.
+const _extensionsWhisper = {
+  'flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm'
+};
 
 /// Le modèle renvoie parfois le JSON entouré de ```json … ``` : on nettoie.
 Map<String, dynamic> parseJsonSouple(String texte) {
@@ -397,11 +427,19 @@ class ClientOpenAI {
   ClientOpenAI(this.cle);
 
   Future<String> transcrire(File audio) async {
+    final ext = audio.path.toLowerCase().split('.').last;
+    if (!_extensionsWhisper.contains(ext)) {
+      throw ErreurIA(
+        'Whisper (OpenAI) n’accepte pas les fichiers « .$ext ». '
+        'Choisis Gemini pour la transcription dans les réglages : il prend ce format.',
+      );
+    }
     final taille = await audio.length();
     if (taille > _limiteWhisper) {
       throw ErreurIA(
         'Fichier trop gros pour Whisper (${(taille / 1048576).toStringAsFixed(1)} Mo, limite 25 Mo). '
-        'Utilise Gemini pour les très longs enregistrements.',
+        'Les vidéos dépassent vite cette limite : choisis Gemini dans les réglages, '
+        'il accepte des fichiers bien plus longs.',
       );
     }
     final requete = http.MultipartRequest('POST', Uri.parse('$_openaiBase/v1/audio/transcriptions'))

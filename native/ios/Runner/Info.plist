@@ -10,6 +10,9 @@
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Khoutba a besoin du micro pour enregistrer le prêche à la mosquée. L'enregistrement reste sur votre téléphone.</string>
+	<!-- Import d'une vidéo déjà filmée : lecture seule de la photothèque. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pour importer une vidéo de prêche déjà enregistrée avec votre téléphone. Khoutba n'accède à aucune autre photo.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

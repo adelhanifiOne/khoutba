@@ -11,6 +11,17 @@ Même app que la version web, avec **la fonction qui manquait : l'enregistrement
 
 Tout le reste est identique : transcription arabe, traduction, résumé structuré (versets, hadiths, conseils, douas), stockage 100 % local, choix du service d'IA.
 
+## Importer un fichier existant
+
+Le bouton **« ou importer un audio / une vidéo »** propose deux sources, parce qu'elles ne donnent pas accès aux mêmes fichiers :
+
+- **Fichiers** — mémos vocaux, audio WhatsApp, iCloud, « Sur mon iPhone »…
+- **Galerie** — les vidéos filmées avec le téléphone, que le sélecteur de fichiers d'iOS ne montre pas.
+
+Le fichier est recopié dans l'app : l'original peut ensuite être déplacé ou supprimé. La date affichée est celle du fichier, pas celle de l'import — une khoutba filmée la semaine dernière garde sa date.
+
+Formats : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…) — la piste sonore est extraite par le service d'IA. **Pour une vidéo, choisis Gemini** : Whisper (OpenAI) refuse plusieurs formats vidéo et plafonne à 25 Mo, ce qu'une vidéo dépasse vite. L'app te le dit clairement si le cas se présente.
+
 ## Comment l'enregistrement survit à l'écran éteint
 
 - **Android** : un *service au premier plan* de type `microphone` (`flutter_foreground_task`) garde le processus vivant, avec une notification permanente pendant l'enregistrement. Déclaré dans `android/app/src/main/AndroidManifest.xml` — ce type est obligatoire depuis Android 14.
@@ -72,10 +83,11 @@ lib/
   traitement.dart      chaîne transcription → traduction → synthèse (prompts)
   stockage.dart        index JSON + fichiers audio
   reglages.dart        préférences + clés API (stockage sécurisé)
+  import_media.dart    import d'un audio/vidéo depuis Fichiers ou la galerie
   modeles.dart         structures de données
   theme.dart           couleurs, styles (clair/sombre, texte arabe)
   ecrans/              accueil, détail, réglages
-test/khoutba_test.dart 16 tests (classement des modèles, JSON, statuts, affichage)
+test/khoutba_test.dart 21 tests (modèles Gemini, JSON, statuts, formats, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
@@ -83,7 +95,7 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 16 tests au vert
+- `flutter test` : 21 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Elle est donc vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

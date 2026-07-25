@@ -4,7 +4,7 @@
 
 // ⚠️ Incrémenter à chaque mise en ligne : c'est ce qui déclenche la mise à
 // jour des fichiers sur les téléphones où l'app est déjà installée.
-const CACHE = 'khoutba-v6';
+const CACHE = 'khoutba-v7';
 
 const FICHIERS = [
   './',

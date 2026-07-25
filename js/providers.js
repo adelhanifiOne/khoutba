@@ -300,25 +300,37 @@ export async function genererGemini(cle, { system, user, json, modele }) {
 const OPENAI_BASE = 'https://api.openai.com';
 const LIMITE_WHISPER = 25 * 1024 * 1024;
 
-function nomFichierAudio(mimeType) {
+// Whisper se fie à l'extension du fichier envoyé : une vidéo mp4 doit être
+// nommée .mp4, pas .m4a. Renvoie null si le format n'est pas accepté.
+function nomFichierPourWhisper(mimeType) {
   const m = mimeSimple(mimeType);
+  if (m === 'video/mp4' || m === 'video/mpeg') return 'media.mp4';
   if (m.includes('mp4')) return 'audio.m4a';
   if (m.includes('mpeg') || m.includes('mp3')) return 'audio.mp3';
   if (m.includes('wav')) return 'audio.wav';
   if (m.includes('ogg')) return 'audio.ogg';
   if (m.includes('flac')) return 'audio.flac';
-  return 'audio.webm';
+  if (m.includes('webm')) return 'audio.webm';
+  return null; // quicktime, matroska, 3gpp… : non pris en charge
 }
 
 export async function transcrireOpenAI(cle, blob, mimeType) {
+  const nomFichier = nomFichierPourWhisper(mimeType);
+  if (!nomFichier) {
+    throw new Error(
+      `Whisper (OpenAI) n'accepte pas le format « ${mimeSimple(mimeType)} ». ` +
+      'Choisis Gemini pour la transcription dans les réglages : il prend ce format.'
+    );
+  }
   if (blob.size > LIMITE_WHISPER) {
     throw new Error(
       `Fichier trop gros pour Whisper (${(blob.size / 1048576).toFixed(1)} Mo, limite 25 Mo). ` +
-      'Utilise Gemini pour la transcription des très longs enregistrements.'
+      'Les vidéos dépassent vite cette limite : choisis Gemini dans les réglages, ' +
+      'il accepte des fichiers bien plus longs.'
     );
   }
   const form = new FormData();
-  form.append('file', blob, nomFichierAudio(mimeType));
+  form.append('file', blob, nomFichier);
   form.append('model', MODELES.openaiTranscription);
   form.append('language', 'ar');
   form.append('response_format', 'text');

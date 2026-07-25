@@ -169,8 +169,8 @@ async function rendreAccueil() {
         <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
       </button>
       <p class="aide-micro">Appuie pour enregistrer le prêche</p>
-      <button id="btn-importer" class="lien">ou importer un fichier audio</button>
-      <input type="file" id="input-import" accept="audio/*,video/mp4" hidden />
+      <button id="btn-importer" class="lien">ou importer un audio / une vidéo</button>
+      <input type="file" id="input-import" accept="audio/*,video/*" hidden />
     </section>
 
     <section class="liste">
@@ -287,7 +287,7 @@ async function importerFichier(ev) {
   const fichier = ev.target.files?.[0];
   ev.target.value = '';
   if (!fichier) return;
-  if (!/^(audio\/|video\/mp4)/.test(fichier.type || '')) { toast('Choisis un fichier audio.'); return; }
+  if (!/^(audio|video)\//.test(fichier.type || '')) { toast('Choisis un fichier audio ou vidéo.'); return; }
 
   const duree = await sonderDuree(fichier);
   const rec = {

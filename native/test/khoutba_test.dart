@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/enregistreur.dart';
 import 'package:khoutba/fournisseurs.dart';
+import 'package:khoutba/import_media.dart';
 import 'package:khoutba/modeles.dart';
 import 'package:khoutba/theme.dart';
 
@@ -144,5 +145,54 @@ void main() {
       expect(find.text('Erreur'), findsOneWidget);
       expect(find.text('À traiter'), findsOneWidget);
     });
+  });
+
+  group('Import audio et vidéo', () {
+    test('une vidéo n’est pas annoncée comme de l’audio', () {
+      // Gemini refuse une vidéo déclarée en audio/* : la distinction compte.
+      expect(mimeSimple('/x/khoutba.mp4'), 'video/mp4');
+      expect(mimeSimple('/x/khoutba.mov'), 'video/quicktime');
+      expect(mimeSimple('/x/khoutba.3gp'), 'video/3gpp');
+      expect(mimeSimple('/x/khoutba.mkv'), 'video/x-matroska');
+    });
+
+    test('les formats audio courants restent en audio/*', () {
+      for (final cas in {
+        'memo.m4a': 'audio/mp4',
+        'memo.wav': 'audio/wav',
+        'memo.ogg': 'audio/ogg',
+        'memo.flac': 'audio/flac',
+        'memo.amr': 'audio/amr',
+        'memo.aac': 'audio/aac',
+      }.entries) {
+        expect(mimeSimple('/x/${cas.key}'), cas.value, reason: cas.key);
+      }
+    });
+
+    test('extension inconnue : repli sans planter', () {
+      expect(mimeSimple('/x/sans_extension'), 'audio/mp4');
+      expect(mimeSimple('/x/truc.xyz'), 'audio/mp4');
+    });
+
+    test('les vidéos sont reconnues comme telles', () {
+      expect(estVideo('/x/a.mp4'), isTrue);
+      expect(estVideo('/x/a.MOV'), isTrue); // casse indifférente
+      expect(estVideo('/x/a.m4a'), isFalse);
+      expect(estVideo('/x/a'), isFalse);
+    });
+
+    test('tous les formats proposés à l’import ont un type MIME connu', () {
+      // Garde-fou : un format offert dans le sélecteur mais non reconnu
+      // partirait vers l'IA avec un type erroné.
+      for (final ext in [...extensionsAudio, ...extensionsVideo]) {
+        final mime = mimeSimple('/x/fichier.$ext');
+        expect(mime, matches(r'^(audio|video)/'), reason: '.$ext → $mime');
+      }
+      // Cohérence entre les deux listes et la déduction du type
+      for (final ext in extensionsVideo.where((e) => e != 'webm')) {
+        expect(mimeSimple('/x/f.$ext').startsWith('video/'), isTrue, reason: '.$ext');
+      }
+    });
+
   });
 }
