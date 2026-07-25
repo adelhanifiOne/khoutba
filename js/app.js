@@ -7,9 +7,12 @@ import {
 } from './db.js';
 import { Enregistreur, mimeSupporte } from './recorder.js';
 import { traiterEnregistrement, traitementEnCours, statutStable } from './pipeline.js';
-import { CHOIX_MODELES_CLAUDE, MODELES } from './providers.js';
+import {
+  CHOIX_MODELES_CLAUDE, MODELES,
+  geminiListerModeles, modeleGeminiRetenu, reinitialiserModelesGemini,
+} from './providers.js';
 
-const VERSION_APP = '1.0.0';
+const VERSION_APP = '1.0.1';
 
 // ------------------------------------------------------------------ réglages
 
@@ -17,6 +20,7 @@ const REGLAGES_DEFAUT = {
   stt: '',                    // '' | 'gemini' | 'openai'
   llm: '',                    // '' | 'gemini' | 'openai' | 'anthropic'
   modeleClaude: MODELES.claudeParDefaut,
+  modeleGemini: '',           // '' = choix automatique du meilleur disponible
   cles: { gemini: '', openai: '', anthropic: '' },
   langue: 'fr',
   demo: false,
@@ -569,6 +573,14 @@ async function rendreReglages() {
         </select>
       </label>
 
+      <label class="ligne-reglage ${r.stt === 'gemini' || r.llm === 'gemini' ? '' : 'cache'}" id="ligne-modele-gemini">
+        <span>Modèle Gemini</span>
+        <select id="sel-gemini">
+          <option value="">${echap(modeleGeminiRetenu() ? `Automatique (${modeleGeminiRetenu()})` : 'Automatique (recommandé)')}</option>
+          ${r.modeleGemini ? `<option value="${echap(r.modeleGemini)}" selected>${echap(r.modeleGemini)}</option>` : ''}
+        </select>
+      </label>
+
       <label class="ligne-reglage">
         <span>Langue des résultats</span>
         <select id="sel-langue">
@@ -601,17 +613,29 @@ async function rendreReglages() {
 
   const sauver = () => { ecrireReglages(reglages); toast('Réglages enregistrés ✓', 1400); };
 
-  $('#sel-stt').addEventListener('change', e => { reglages.stt = e.target.value; sauver(); });
+  const majLigneGemini = () =>
+    $('#ligne-modele-gemini').classList.toggle('cache', reglages.stt !== 'gemini' && reglages.llm !== 'gemini');
+
+  $('#sel-stt').addEventListener('change', e => { reglages.stt = e.target.value; sauver(); majLigneGemini(); });
   $('#sel-llm').addEventListener('change', e => {
     reglages.llm = e.target.value; sauver();
     $('#ligne-modele-claude').classList.toggle('cache', reglages.llm !== 'anthropic');
+    majLigneGemini();
   });
   $('#sel-claude').addEventListener('change', e => { reglages.modeleClaude = e.target.value; sauver(); });
+  $('#sel-gemini').addEventListener('change', e => { reglages.modeleGemini = e.target.value; sauver(); });
   $('#sel-langue').addEventListener('change', e => { reglages.langue = e.target.value; sauver(); });
   $('#chk-demo').addEventListener('change', e => { reglages.demo = e.target.checked; sauver(); });
 
+  // Liste des modèles Gemini réellement disponibles avec la clé saisie
+  chargerModelesGemini();
+
   for (const nom of ['gemini', 'openai', 'anthropic']) {
-    $(`#cle-${nom}`).addEventListener('change', e => { reglages.cles[nom] = e.target.value.trim(); sauver(); });
+    $(`#cle-${nom}`).addEventListener('change', e => {
+      reglages.cles[nom] = e.target.value.trim();
+      sauver();
+      if (nom === 'gemini') { reinitialiserModelesGemini(); chargerModelesGemini(); }
+    });
     $(`#voir-${nom}`).addEventListener('click', () => {
       const champ = $(`#cle-${nom}`);
       champ.type = champ.type === 'password' ? 'text' : 'password';
@@ -624,6 +648,21 @@ async function rendreReglages() {
     for (const rec of recs) await supprimerEnregistrement(rec.id);
     toast('Tout a été supprimé.');
   });
+}
+
+// Remplit le menu « Modèle Gemini » avec ce que la clé permet réellement.
+async function chargerModelesGemini() {
+  const select = $('#sel-gemini');
+  const cle = reglages.cles.gemini;
+  if (!select || !cle) return;
+  let modeles;
+  try { modeles = await geminiListerModeles(cle); }
+  catch { return; } // silencieux : le mode automatique fonctionne quand même
+  if (!$('#sel-gemini') || !modeles.length) return;
+  const choisi = reglages.modeleGemini;
+  $('#sel-gemini').innerHTML =
+    `<option value="">Automatique — ${echap(modeles[0].id)}</option>` +
+    modeles.map(m => `<option value="${echap(m.id)}" ${m.id === choisi ? 'selected' : ''}>${echap(m.id)}</option>`).join('');
 }
 
 function champCle(nom, libelle, valeur, aide) {
@@ -661,8 +700,19 @@ async function init() {
   });
 
   if ('serviceWorker' in navigator) {
+    // Une nouvelle version prend la main : on recharge pour l'appliquer tout de
+    // suite (sinon l'app installée resterait sur les fichiers en cache).
+    // Jamais pendant un enregistrement.
+    const avaitControleur = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!avaitControleur || enregistreur?.actif || rechargementFait) return;
+      rechargementFait = true;
+      location.reload();
+    });
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
+
+let rechargementFait = false;
 
 init();

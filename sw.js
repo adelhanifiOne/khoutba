@@ -2,7 +2,9 @@
 // Stratégie : cache d'abord pour les fichiers de l'app ; le réseau n'est
 // utilisé que pour les API d'IA (jamais mises en cache).
 
-const CACHE = 'khoutba-v1';
+// ⚠️ Incrémenter à chaque mise en ligne : c'est ce qui déclenche la mise à
+// jour des fichiers sur les téléphones où l'app est déjà installée.
+const CACHE = 'khoutba-v2';
 
 const FICHIERS = [
   './',

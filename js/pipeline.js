@@ -100,7 +100,7 @@ async function etapeTranscription(rec, reglages, onStatus) {
   const stt = reglages.demo ? 'demo' : reglages.stt;
   if (stt === 'demo') return transcrireDemo();
   if (stt === 'gemini') {
-    return transcrireGemini(verifierCle(reglages, 'gemini'), rec.audio, rec.mimeType, PROMPT_TRANSCRIPTION);
+    return transcrireGemini(verifierCle(reglages, 'gemini'), rec.audio, rec.mimeType, PROMPT_TRANSCRIPTION, reglages.modeleGemini);
   }
   if (stt === 'openai') {
     return transcrireOpenAI(verifierCle(reglages, 'openai'), rec.audio, rec.mimeType);
@@ -112,7 +112,9 @@ async function etapeGeneration(reglages, params) {
   const llm = reglages.demo ? 'demo' : reglages.llm;
   if (llm === 'demo') return genererDemo(params);
   if (llm === 'gemini') {
-    const texte = await genererGemini(verifierCle(reglages, 'gemini'), { system: params.system, user: params.user, json: !!params.schema });
+    const texte = await genererGemini(verifierCle(reglages, 'gemini'), {
+      system: params.system, user: params.user, json: !!params.schema, modele: reglages.modeleGemini,
+    });
     if (params.onDelta) params.onDelta(texte);
     return texte;
   }

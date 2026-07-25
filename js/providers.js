@@ -8,7 +8,11 @@
 // - demo   : contenu fictif, pour essayer l'app sans clé.
 
 export const MODELES = {
-  gemini: 'gemini-2.5-flash',
+  // Le modèle Gemini n'est PAS codé en dur : Google en retire régulièrement
+  // (« no longer available to new users »). L'app interroge la liste des
+  // modèles disponibles pour ta clé et choisit le meilleur (voir plus bas).
+  // Cette liste ne sert que si l'interrogation échoue (hors-ligne, etc.).
+  geminiSecours: ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'],
   openaiTranscription: 'whisper-1',
   openaiTexte: 'gpt-4o-mini',
   claudeParDefaut: 'claude-opus-4-8',
@@ -103,10 +107,76 @@ export function parseJsonSouple(texte) {
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com';
 const LIMITE_INLINE = 15 * 1024 * 1024; // au-delà : upload via l'API Files
 
-async function geminiGenerer(cle, contents, generationConfig, systemInstruction) {
+// --- Choix automatique du modèle -------------------------------------------
+// Google retire régulièrement d'anciens modèles. On demande donc à l'API la
+// liste de ceux réellement accessibles avec la clé de l'utilisateur, et on
+// garde le plus adapté : multimodal (l'audio doit passer), rapide et
+// économique. Résultat mémorisé pour la session.
+
+// Modèles à écarter : ni génératifs de texte, ni compatibles audio.
+const GEMINI_EXCLUS = /(embedding|aqa|imagen|veo|gemma|tts|image-generation|native-audio|-live-|learnlm|vision)/i;
+
+function scoreModeleGemini(id) {
+  let score;
+  if (/flash/.test(id) && !/lite/.test(id)) score = 1000;   // le bon compromis
+  else if (/\bpro\b|-pro/.test(id)) score = 700;            // plus cher
+  else if (/lite/.test(id)) score = 500;                    // plus faible
+  else score = 300;
+  const version = parseFloat((id.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+  score += version * 10;                                    // génération récente
+  if (/(preview|exp|beta|\d{4}-\d{2}|-\d{3,})/.test(id)) score -= 50; // instable
+  if (/-latest$/.test(id)) score += 5;
+  return score;
+}
+
+let _geminiCandidats = null;
+let _geminiCleCache = '';
+
+export function reinitialiserModelesGemini() {
+  _geminiCandidats = null;
+  _geminiCleCache = '';
+  try { localStorage.removeItem('khoutba.geminiModele'); } catch { }
+}
+
+export function modeleGeminiRetenu() {
+  try { return localStorage.getItem('khoutba.geminiModele') || ''; } catch { return ''; }
+}
+
+// Liste les modèles utilisables avec cette clé, du plus adapté au moins adapté.
+export async function geminiListerModeles(cle) {
+  const data = await fetchJson('Gemini', `${GEMINI_BASE}/v1beta/models?pageSize=200&key=${encodeURIComponent(cle)}`);
+  return (data.models || [])
+    .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map(m => ({ id: String(m.name || '').replace(/^models\//, ''), nom: m.displayName || '' }))
+    .filter(m => m.id && !GEMINI_EXCLUS.test(m.id) && !GEMINI_EXCLUS.test(m.nom))
+    .sort((a, b) => scoreModeleGemini(b.id) - scoreModeleGemini(a.id));
+}
+
+async function geminiCandidats(cle, modeleForce) {
+  if (modeleForce) return [modeleForce];
+  if (_geminiCandidats && _geminiCleCache === cle) return _geminiCandidats;
+  try {
+    const liste = await geminiListerModeles(cle);
+    _geminiCandidats = liste.length ? liste.map(m => m.id) : MODELES.geminiSecours.slice();
+  } catch {
+    // Liste inaccessible (réseau, quota…) : on tente quand même les noms connus.
+    _geminiCandidats = MODELES.geminiSecours.slice();
+  }
+  _geminiCleCache = cle;
+  return _geminiCandidats;
+}
+
+// Un modèle peut disparaître entre deux utilisations : on considère ces
+// réponses comme « essaie le suivant » plutôt que comme un échec.
+function modeleIndisponible(statut, corps) {
+  if (statut === 404) return true;
+  return statut === 400 && /not supported|unsupported|no longer available/i.test(corps || '');
+}
+
+async function geminiAppel(cle, modele, contents, generationConfig, systemInstruction) {
   const corps = { contents, generationConfig };
   if (systemInstruction) corps.systemInstruction = { parts: [{ text: systemInstruction }] };
-  const url = `${GEMINI_BASE}/v1beta/models/${MODELES.gemini}:generateContent?key=${encodeURIComponent(cle)}`;
+  const url = `${GEMINI_BASE}/v1beta/models/${modele}:generateContent?key=${encodeURIComponent(cle)}`;
 
   let rep;
   try {
@@ -117,13 +187,18 @@ async function geminiGenerer(cle, contents, generationConfig, systemInstruction)
     });
   } catch { throw erreurReseau('Gemini'); }
 
-  // Certains réglages (thinkingConfig…) ne sont pas acceptés par tous les
-  // modèles : on retente une fois sans, plutôt que d'échouer.
-  if (rep.status === 400 && generationConfig?.thinkingConfig) {
-    const { thinkingConfig, ...reste } = generationConfig;
-    return geminiGenerer(cle, contents, reste, systemInstruction);
+  if (!rep.ok) {
+    const texteErreur = await rep.text().catch(() => '');
+    // Certains réglages (thinkingConfig…) ne sont pas acceptés par tous les
+    // modèles : on retente une fois sans, plutôt que d'échouer.
+    if (rep.status === 400 && generationConfig?.thinkingConfig) {
+      const { thinkingConfig, ...reste } = generationConfig;
+      return geminiAppel(cle, modele, contents, reste, systemInstruction);
+    }
+    const e = erreurHttp('Gemini', rep.status, texteErreur);
+    e.modeleIndisponible = modeleIndisponible(rep.status, texteErreur);
+    throw e;
   }
-  if (!rep.ok) throw erreurHttp('Gemini', rep.status, await rep.text().catch(() => ''));
 
   const data = await rep.json();
   const cand = data.candidates?.[0];
@@ -133,6 +208,24 @@ async function geminiGenerer(cle, contents, generationConfig, systemInstruction)
     throw new Error(`Gemini n’a pas renvoyé de texte (${raison}).`);
   }
   return texte;
+}
+
+// Essaie les modèles disponibles dans l'ordre, jusqu'à en trouver un qui répond.
+async function geminiGenerer(cle, contents, generationConfig, systemInstruction, modeleForce) {
+  const candidats = await geminiCandidats(cle, modeleForce);
+  let derniereErreur = null;
+  for (const modele of candidats.slice(0, 4)) {
+    try {
+      const texte = await geminiAppel(cle, modele, contents, generationConfig, systemInstruction);
+      try { localStorage.setItem('khoutba.geminiModele', modele); } catch { }
+      return texte;
+    } catch (e) {
+      derniereErreur = e;
+      if (!e.modeleIndisponible) throw e;   // vraie erreur (quota, clé, contenu)
+      _geminiCandidats = null;              // ce modèle a disparu : on re-listera
+    }
+  }
+  throw derniereErreur || new Error('Gemini : aucun modèle disponible avec cette clé.');
 }
 
 async function geminiUploadFichier(cle, blob, mimeType) {
@@ -178,7 +271,7 @@ async function geminiUploadFichier(cle, blob, mimeType) {
   return fichier;
 }
 
-export async function transcrireGemini(cle, blob, mimeType, prompt) {
+export async function transcrireGemini(cle, blob, mimeType, prompt, modeleForce) {
   const mime = mimeSimple(mimeType);
   let partAudio;
   if (blob.size <= LIMITE_INLINE) {
@@ -193,13 +286,13 @@ export async function transcrireGemini(cle, blob, mimeType, prompt) {
     maxOutputTokens: 65536,
     // La transcription n'a pas besoin de « réflexion » : plus rapide, moins cher.
     thinkingConfig: { thinkingBudget: 0 },
-  });
+  }, null, modeleForce);
 }
 
-export async function genererGemini(cle, { system, user, json }) {
+export async function genererGemini(cle, { system, user, json, modele }) {
   const generationConfig = { temperature: 0.3, maxOutputTokens: 65536 };
   if (json) generationConfig.responseMimeType = 'application/json';
-  return geminiGenerer(cle, [{ role: 'user', parts: [{ text: user }] }], generationConfig, system);
+  return geminiGenerer(cle, [{ role: 'user', parts: [{ text: user }] }], generationConfig, system, modele);
 }
 
 // ---------------------------------------------------------------------- OpenAI

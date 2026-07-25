@@ -65,7 +65,9 @@ Un **mode démo** (réglages) permet d'essayer toute l'app sans aucune clé, ave
 
 - PWA sans framework ni build : HTML/CSS/JS (modules), Service Worker, IndexedDB.
 - Enregistrement : MediaRecorder mono 32 kb/s (webm/opus sur Android, mp4/AAC sur iPhone), ≈ 14 Mo/heure.
-- Fournisseurs : Gemini (`gemini-2.5-flash`, audio natif + API Files pour les gros fichiers), OpenAI (`whisper-1`, `gpt-4o-mini`), Anthropic (`claude-opus-4-8` par défaut, appel direct navigateur). Modèles modifiables en tête de `js/providers.js`.
+- Fournisseurs : Gemini (audio natif + API Files pour les gros fichiers), OpenAI (`whisper-1`, `gpt-4o-mini`), Anthropic (`claude-opus-4-8` par défaut, appel direct navigateur).
+- **Le modèle Gemini n'est pas codé en dur** : Google retire régulièrement d'anciens modèles (« no longer available to new users »). L'app interroge `ListModels` avec ta clé, classe les modèles disponibles (multimodal, récent, économique) et bascule automatiquement sur le suivant si l'un disparaît. Choix manuel possible dans les réglages.
+- Mise à jour : incrémenter `CACHE` dans `sw.js` à chaque mise en ligne — les apps déjà installées se rechargent alors toutes seules.
 - La synthèse est produite en JSON structuré (schéma strict côté OpenAI/Claude).
 
 ## Idées pour la suite
