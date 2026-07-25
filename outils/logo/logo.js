@@ -30,6 +30,16 @@ const OR = '#D9B24C';
  *    en cercle sur Android, ou « maskable » du web).
  * - `fond: null` : sans fond, pour l'avant-plan des icônes adaptatives.
  */
+// Part de la largeur du cadre occupée par le texte. Les tailles de police en
+// découlent : elles ne sont jamais écrites en dur, sinon changer un mot fait
+// déborder le dessin (chaque mot a sa propre largeur dans la police).
+const OCCUPATION = { arabeSeul: 0.78, arabeAvecLatin: 0.69, latin: 0.72 };
+const INTERLETTRE_LATIN = 0.108; // en em, pour que tout reste proportionnel
+
+/**
+ * `largeurs` : largeur des mots pour une police de 1 px, mesurée par
+ * `mesurerLargeurs()`. C'est ce qui permet d'ajuster automatiquement.
+ */
 function logo({
   fond = 'bleu nuit',
   arabe = 'خطبة',
@@ -37,16 +47,16 @@ function logo({
   taille = 512,
   sansTexteLatin = false,
   echelle = 1,
+  largeurs = { arabe: 2.343, latin: 4.857 },
 } = {}) {
   const e = taille / 512; // tout est dessiné pour 512 puis mis à l'échelle
   const degrade = fond
     ? `background:linear-gradient(160deg, ${FONDS[fond][0]} 0%, ${FONDS[fond][1]} 100%);`
     : '';
-  // Tailles calculées depuis la largeur réelle des mots dans la police Cairo :
-  // « خطبة » mesure 2,34 × la taille de police, « KHOUTBA » 4,86 ×.
-  // On vise 78 % de la largeur du cadre pour le mot seul, 69 % accompagné.
-  const tailleArabe = sansTexteLatin ? 170 : 150;
-  const tailleLatin = 74;
+
+  const part = sansTexteLatin ? OCCUPATION.arabeSeul : OCCUPATION.arabeAvecLatin;
+  const tailleArabe = (512 * part) / largeurs.arabe;
+  const tailleLatin = (512 * OCCUPATION.latin) / largeurs.latin;
 
   const contenu = `
     <div style="font-family:Cairo,sans-serif;font-weight:700;color:${CREME};
@@ -57,7 +67,8 @@ function logo({
                 border-radius:${5 * e}px;margin:${20 * e}px 0 ${18 * e}px;"></div>
     <div style="font-family:Cairo,sans-serif;font-weight:700;color:${CREME};
                 font-size:${tailleLatin * e}px;line-height:1.15;white-space:nowrap;
-                letter-spacing:${8 * e}px;text-indent:${8 * e}px;">${latin}</div>`}`;
+                letter-spacing:${INTERLETTRE_LATIN}em;
+                text-indent:${INTERLETTRE_LATIN}em;">${latin}</div>`}`;
 
   return `
   <div style="width:${taille}px;height:${taille}px;position:relative;overflow:hidden;${degrade}
@@ -74,4 +85,22 @@ const page = (contenu, largeur, hauteur, styleSupp = '') => `<!DOCTYPE html>
   ${styleSupp}
 </style></head><body>${contenu}</body></html>`;
 
-module.exports = { logo, page, FONDS, CREME, OR };
+/**
+ * Mesure la largeur des deux mots pour une police de 1 px. Indispensable :
+ * chaque mot a sa propre largeur, et une taille écrite en dur déborde du
+ * cadre dès qu'on change de texte.
+ */
+async function mesurerLargeurs(p, { arabe, latin }) {
+  await p.setContent(page(
+    `<span id="ar" style="font-family:Cairo;font-weight:700;font-size:100px;direction:rtl;white-space:nowrap">${arabe}</span>
+     <span id="la" style="font-family:Cairo;font-weight:700;font-size:100px;white-space:nowrap;letter-spacing:${INTERLETTRE_LATIN}em">${latin}</span>`,
+    900, 400, 'span{display:inline-block}'
+  ));
+  await p.evaluate(() => document.fonts.ready);
+  return p.evaluate(() => ({
+    arabe: document.getElementById('ar').getBoundingClientRect().width / 100,
+    latin: document.getElementById('la').getBoundingClientRect().width / 100,
+  }));
+}
+
+module.exports = { logo, page, mesurerLargeurs, FONDS, CREME, OR, OCCUPATION };

@@ -2,14 +2,18 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const { logo, page, FONDS } = require('./logo');
+const { logo, page, mesurerLargeurs, FONDS } = require('./logo');
 
 const RACINE = path.resolve(__dirname, '../..');
 const NATIF = path.join(RACINE, 'native');
 
-const FOND = 'bleu nuit';
+// ————— à modifier pour changer le logo —————
+const FOND = 'prune';        // bleu nuit | prune | ardoise | brun cuir | vert (AdhanBox)
+const ARABE = 'أذان';        // le mot arabe affiché au-dessus du filet doré
+const LATIN = 'KHOUTBA';
+// ———————————————————————————————————————————
+
 const FOND_UNI = FONDS[FOND][1]; // teinte sombre, pour l'icône adaptative Android
-const ARABE = 'خطبة';
 
 async function rendre(p, options, taille, transparent = false) {
   await p.setViewportSize({ width: taille, height: taille });
@@ -28,11 +32,19 @@ const ecrire = (chemin, donnees) => {
 };
 
 (async () => {
-  const nav = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  // CHROMIUM_PATH permet d'utiliser un navigateur déjà installé ;
+  // sinon Playwright prend le sien.
+  const nav = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const p = await nav.newPage({ deviceScaleFactor: 1 });
 
-  const base = { fond: FOND, arabe: ARABE, latin: 'KHOUTBA' };
-  // Sous 40 px, « KHOUTBA » n'est plus lisible : on ne garde que le mot arabe.
+  // On mesure les mots réellement utilisés : les tailles de police en
+  // découlent, donc changer de texte ne fait jamais déborder le dessin.
+  const largeurs = await mesurerLargeurs(p, { arabe: ARABE, latin: LATIN });
+  console.log(`largeurs mesurées — ${ARABE} : ${largeurs.arabe.toFixed(2)}×,`
+    + ` ${LATIN} : ${largeurs.latin.toFixed(2)}× la taille de police`);
+
+  const base = { fond: FOND, arabe: ARABE, latin: LATIN, largeurs };
+  // Sous 64 px, « KHOUTBA » n'est plus lisible : on ne garde que le mot arabe.
   const pourTaille = (px) => ({ ...base, sansTexteLatin: px < 64 });
 
   // ---------------------------------------------------------------- iOS
