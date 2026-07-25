@@ -1,0 +1,39 @@
+name: khoutba
+description: "Enregistre le prêche du vendredi, transcription arabe, traduction et résumé."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Enregistrement audio (AAC/m4a), avec niveau sonore en direct
+  record: ^7.1.1
+  # Garde le processus vivant écran éteint (service au premier plan Android)
+  flutter_foreground_task: ^10.0.0
+  # Autorisations micro / notifications
+  permission_handler: ^12.0.3
+  # Lecture des enregistrements
+  just_audio: ^0.10.6
+
+  # Stockage
+  path_provider: ^2.1.6
+  shared_preferences: ^2.5.5
+  flutter_secure_storage: ^10.3.1 # clés API : trousseau iOS / keystore Android
+
+  http: ^1.6.0
+  share_plus: ^13.3.0
+  intl: ^0.20.3
+  uuid: ^4.6.0
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

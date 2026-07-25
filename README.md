@@ -48,9 +48,19 @@ L'app n'a **pas de serveur** : elle appelle directement le service d'IA avec **t
 
 Un **mode démo** (réglages) permet d'essayer toute l'app sans aucune clé, avec des textes fictifs.
 
+## Deux versions
+
+| | Version web (ce dossier) | [Version native](native/) (Flutter) |
+|---|---|---|
+| Installation | ouvrir un lien, « ajouter à l'écran d'accueil » | compiler avec Xcode / Android Studio |
+| Enregistrer **écran éteint** | ❌ (limite des navigateurs) | ✅ |
+| Mise à jour | automatique | recompiler |
+
+Même fonctionnement, mêmes prompts, mêmes services d'IA. Commence par la version web ; passe au natif si l'écran allumé pendant tout le prêche te gêne.
+
 ## Limites à connaître
 
-- **Garde l'écran allumé pendant l'enregistrement** (l'app s'en occupe via le verrou d'écran). Les navigateurs coupent le micro quand le téléphone se verrouille — c'est LA limite des web apps. Astuce fiable : enregistre avec le **dictaphone** du téléphone (qui marche écran éteint), puis **importe le fichier** dans Khoutba pour le traitement.
+- **Garde l'écran allumé pendant l'enregistrement** (l'app s'en occupe via le verrou d'écran). Les navigateurs coupent le micro quand le téléphone se verrouille — c'est LA limite des web apps, et la raison d'être de la [version native](native/). Autre solution : enregistre avec le **dictaphone** du téléphone (qui marche écran éteint), puis **importe le fichier** dans Khoutba pour le traitement.
 - **Transcriptions longues** : Whisper (OpenAI) est limité à 25 Mo (≈ 2 h à notre débit d'enregistrement). Gemini accepte des fichiers bien plus longs.
 - **Vérifie les références** : l'IA identifie les versets et hadiths cités, mais peut se tromper de référence — les citations importantes méritent une vérification.
 - L'arabe algérien (darija) mélangé au littéraire est bien géré, mais la qualité dépend du placement du téléphone : près d'un haut-parleur de la salle = résultat nettement meilleur.
@@ -72,7 +82,6 @@ Un **mode démo** (réglages) permet d'essayer toute l'app sans aucune clé, ave
 
 ## Idées pour la suite
 
-- Version native (Flutter) pour enregistrer écran éteint — comme l'app AdhanBox.
 - Détection automatique du vendredi + rappel.
 - Bibliothèque des khoutbas par thème, recherche plein texte.
 - Partage familial d'un résumé hebdomadaire.
