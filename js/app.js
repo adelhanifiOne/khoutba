@@ -156,7 +156,7 @@ async function rendreAccueil() {
   principal.innerHTML = `
     <header class="entete">
       <div class="marque">
-        <img src="icons/icon.svg" alt="" class="logo"/>
+        <img src="icons/icon-192.png" alt="" class="logo"/>
         <div><h1>Khoutba</h1><p class="devise">Enregistre, comprends, retiens.</p></div>
       </div>
       <a class="bouton-icone" href="#reglages" aria-label="Réglages" title="Réglages">⚙️</a>

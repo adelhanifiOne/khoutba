@@ -4,7 +4,7 @@
 
 // ⚠️ Incrémenter à chaque mise en ligne : c'est ce qui déclenche la mise à
 // jour des fichiers sur les téléphones où l'app est déjà installée.
-const CACHE = 'khoutba-v3';
+const CACHE = 'khoutba-v4';
 
 const FICHIERS = [
   './',
@@ -16,7 +16,6 @@ const FICHIERS = [
   './js/providers.js',
   './js/pipeline.js',
   './manifest.webmanifest',
-  './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
