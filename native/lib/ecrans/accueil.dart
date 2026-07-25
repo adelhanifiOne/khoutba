@@ -250,7 +250,7 @@ class _EcranAccueilState extends State<EcranAccueil> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const RadialGradient(
-                  colors: [Couleurs.accentClair, Couleurs.accentFonce],
+                  colors: [Couleurs.accentSombre, Couleurs.accentFonce],
                   center: Alignment(-0.3, -0.4),
                 ),
                 boxShadow: [
@@ -394,16 +394,16 @@ class BadgeStatut extends StatelessWidget {
       case Statut.traduction:
       case Statut.synthese:
         libelle = 'En cours…';
-        couleur = Theme.of(context).colorScheme.primary;
+        couleur = accentTexte(context); // lisible en petit, y compris sur fond sombre
       case Statut.transcrit:
         libelle = 'Transcrit';
-        couleur = sombre ? Couleurs.orSombre : Couleurs.or;
+        couleur = orLisible(context);
       case Statut.traduit:
         libelle = 'Traduit';
-        couleur = sombre ? Couleurs.orSombre : Couleurs.or;
+        couleur = orLisible(context);
       case Statut.termine:
         libelle = 'Terminé';
-        couleur = sombre ? Couleurs.accentClair : Couleurs.accent;
+        couleur = accentTexte(context);
       case Statut.erreur:
         libelle = 'Erreur';
         couleur = sombre ? Couleurs.rougeSombre : Couleurs.rouge;

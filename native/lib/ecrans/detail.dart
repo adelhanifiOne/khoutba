@@ -443,7 +443,7 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
           padding: const EdgeInsets.only(top: 20, bottom: 8),
           child: Text(t,
               style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.primary)),
+                  fontSize: 16, fontWeight: FontWeight.w600, color: accentTexte(context))),
         );
 
     Widget puces(List<String> items) => Column(

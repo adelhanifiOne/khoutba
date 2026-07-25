@@ -1,26 +1,47 @@
 import 'package:flutter/material.dart';
 
-/// Palette de l'app : vert de mosquée, crème, doré discret.
+/// Palette de l'app, accordée au logo : prune, crème, doré discret.
+///
+/// Deux nuances distinctes là où le contraste l'impose :
+///  - en mode sombre, l'accent des boutons (texte blanc dessus) doit être plus
+///    foncé que celui des titres et liens (lus sur fond sombre) ;
+///  - le doré décoratif est trop clair pour servir de texte sur fond clair.
+/// Toutes les paires ci-dessous ont été vérifiées au niveau AA (≥ 4,5).
 class Couleurs {
-  static const accent = Color(0xFF0F6B4F);
-  static const accentFonce = Color(0xFF0A4F3A);
-  static const accentClair = Color(0xFF35A37F);
-  static const or = Color(0xFFC9A227);
-  static const orSombre = Color(0xFFD4B04A);
-  static const creme = Color(0xFFFAF7F0);
+  // Clair
+  static const accent = Color(0xFF5E2751);        // boutons et texte
+  static const accentFonce = Color(0xFF3D1836);   // appui, dégradés
+  static const creme = Color(0xFFFAF6F3);
   static const carteClaire = Color(0xFFFFFFFF);
-  static const fondSombre = Color(0xFF121815);
-  static const carteSombre = Color(0xFF1B241F);
+  static const or = Color(0xFFC9A227);            // décoratif (filets, bordures)
+  static const orTexte = Color(0xFF8A6B12);       // lisible sur fond clair
   static const rouge = Color(0xFFB3382C);
+
+  // Sombre
+  static const accentSombre = Color(0xFF9B5A8B);       // boutons
+  static const accentTexteSombre = Color(0xFFB87BA8);  // titres, liens
+  static const fondSombre = Color(0xFF17111A);
+  static const carteSombre = Color(0xFF221A26);
+  static const orSombre = Color(0xFFD4B04A);           // lisible sur fond sombre
   static const rougeSombre = Color(0xFFE07B6F);
 }
 
 ThemeData themeClair() => _theme(Brightness.light);
 ThemeData themeSombre() => _theme(Brightness.dark);
 
+/// Accent réservé au texte (titres, liens) : plus clair en mode sombre.
+Color accentTexte(BuildContext contexte) =>
+    Theme.of(contexte).brightness == Brightness.dark
+        ? Couleurs.accentTexteSombre
+        : Couleurs.accent;
+
+/// Doré lisible comme texte, selon le mode.
+Color orLisible(BuildContext contexte) =>
+    Theme.of(contexte).brightness == Brightness.dark ? Couleurs.orSombre : Couleurs.orTexte;
+
 ThemeData _theme(Brightness luminosite) {
   final sombre = luminosite == Brightness.dark;
-  final accent = sombre ? Couleurs.accentClair : Couleurs.accent;
+  final accent = sombre ? Couleurs.accentSombre : Couleurs.accent;
   final fond = sombre ? Couleurs.fondSombre : Couleurs.creme;
   final carte = sombre ? Couleurs.carteSombre : Couleurs.carteClaire;
 

@@ -1,31 +1,36 @@
 /* Khoutba — styles. Mobile d'abord, clair/sombre automatique. */
 
 :root {
-  --accent: #0f6b4f;          /* vert profond */
-  --accent-fonce: #0a4f3a;
-  --or: #c9a227;              /* doré discret */
-  --fond: #faf7f0;            /* crème */
+  --accent: #5e2751;          /* prune, accordé au logo */
+  --accent-fonce: #3d1836;
+  --accent-texte: #5e2751;    /* titres et liens */
+  --or: #c9a227;              /* doré décoratif (filets, bordures) */
+  --or-texte: #8a6b12;        /* doré lisible comme texte sur fond clair */
+  --fond: #faf6f3;
   --carte: #ffffff;
-  --texte: #1f2a26;
-  --texte-doux: #64716b;
-  --bord: #e4ded1;
+  --texte: #2a1f28;
+  --texte-doux: #6e6169;
+  --bord: #e7dde4;
   --erreur: #b3382c;
-  --ok: #0f6b4f;
-  --ombre: 0 1px 3px rgba(31, 42, 38, 0.08), 0 4px 14px rgba(31, 42, 38, 0.06);
+  --ok: #5e2751;
+  --ombre: 0 1px 3px rgba(42, 31, 40, 0.08), 0 4px 14px rgba(42, 31, 40, 0.06);
   --rayon: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --accent: #35a37f;
-    --accent-fonce: #2b8266;
+    --accent: #9b5a8b;        /* boutons : assez foncé pour du texte blanc */
+    --accent-fonce: #7a3a6b;
+    --accent-texte: #b87ba8;  /* titres et liens : plus clair pour le fond sombre */
     --or: #d4b04a;
-    --fond: #121815;
-    --carte: #1b241f;
-    --texte: #e8ece9;
-    --texte-doux: #93a09a;
-    --bord: #2a352f;
+    --or-texte: #d4b04a;
+    --fond: #17111a;
+    --carte: #221a26;
+    --texte: #ece7ea;
+    --texte-doux: #9c8f98;
+    --bord: #33283a;
     --erreur: #e07b6f;
+    --ok: #b87ba8;
     --ombre: 0 1px 3px rgba(0, 0, 0, 0.4);
   }
 }
@@ -104,7 +109,7 @@ h1 { font-size: 1.45rem; margin: 0; font-family: Georgia, "Times New Roman", ser
 
 .lien {
   background: none; border: none; cursor: pointer;
-  color: var(--accent); font-size: 0.9rem; text-decoration: underline; padding: 6px;
+  color: var(--accent-texte); font-size: 0.9rem; text-decoration: underline; padding: 6px;
 }
 
 /* ---------- liste ---------- */
@@ -132,8 +137,8 @@ h1 { font-size: 1.45rem; margin: 0; font-family: Georgia, "Times New Roman", ser
   padding: 4px 9px; border-radius: 99px; white-space: nowrap;
 }
 .badge-neutre { background: var(--bord); color: var(--texte-doux); }
-.badge-etape  { background: color-mix(in srgb, var(--or) 22%, transparent); color: color-mix(in srgb, var(--or) 70%, var(--texte)); }
-.badge-actif  { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.badge-etape  { background: color-mix(in srgb, var(--or) 22%, transparent); color: var(--or-texte); }
+.badge-actif  { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-texte); }
 .badge-ok     { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
 .badge-erreur { background: color-mix(in srgb, var(--erreur) 15%, transparent); color: var(--erreur); }
 
@@ -287,7 +292,7 @@ h1 { font-size: 1.45rem; margin: 0; font-family: Georgia, "Times New Roman", ser
 
 .synthese h3 {
   font-size: 1rem; margin: 20px 0 8px;
-  color: var(--accent);
+  color: var(--accent-texte);
   font-family: Georgia, serif;
 }
 
