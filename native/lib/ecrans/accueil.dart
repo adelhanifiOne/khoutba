@@ -209,18 +209,9 @@ class _EcranAccueilState extends State<EcranAccueil> {
       padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Couleurs.accent, Couleurs.accentFonce],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.mic, color: Colors.white, size: 24),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset('assets/logo.png', width: 44, height: 44),
           ),
           const SizedBox(width: 12),
           Expanded(

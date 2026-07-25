@@ -1,22 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="fond" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#11795a"/>
-      <stop offset="1" stop-color="#0a4f3a"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#fond)"/>
-  <!-- dôme -->
-  <path d="M256 78c-6 34-30 56-58 74-24 16-42 38-42 68v18h200v-18c0-30-18-52-42-68-28-18-52-40-58-74z" fill="#f4ecd8" opacity="0.95"/>
-  <circle cx="256" cy="70" r="9" fill="#d4b04a"/>
-  <rect x="252" y="52" width="8" height="20" rx="4" fill="#d4b04a"/>
-  <!-- corps du micro -->
-  <rect x="216" y="216" width="80" height="132" rx="40" fill="#f4ecd8"/>
-  <!-- arc du micro -->
-  <path d="M176 300v14c0 44 36 80 80 80s80-36 80-80v-14" fill="none" stroke="#d4b04a" stroke-width="22" stroke-linecap="round"/>
-  <rect x="245" y="394" width="22" height="36" rx="10" fill="#d4b04a"/>
-  <rect x="206" y="428" width="100" height="18" rx="9" fill="#d4b04a"/>
-  <!-- ondes -->
-  <path d="M150 236c-14 18-22 40-22 64" stroke="#f4ecd8" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.55"/>
-  <path d="M362 236c14 18 22 40 22 64" stroke="#f4ecd8" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.55"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#11795A"/>
+    <stop offset="1" stop-color="#08402F"/>
+  </linearGradient>
+</defs>
+<rect width="512" height="512" fill="url(#g)"/>
+    
+  <circle cx="256" cy="58" r="12" fill="#D9B24C"/>
+  <rect x="250" y="62" width="12" height="18" fill="#D9B24C"/>
+  <path d="M256 74
+           C 302 132, 346 168, 346 238
+           L 346 300
+           C 346 352, 306 382, 256 382
+           C 206 382, 166 352, 166 300
+           L 166 238
+           C 166 168, 210 132, 256 74 Z" fill="#F6EFDF"/>
+  <path d="M136 286 L136 300 A120 120 0 0 0 376 300 L376 286"
+        fill="none" stroke="#D9B24C" stroke-width="28" stroke-linecap="round"/>
+  <rect x="242" y="414" width="28" height="30" fill="#D9B24C"/>
+  <rect x="196" y="440" width="120" height="24" rx="12" fill="#D9B24C"/>
+  </svg>
