@@ -26,7 +26,16 @@ cd native
 flutter pub get
 ```
 
-### Sur iPhone (depuis un Mac)
+### Sur iPhone — le plus simple
+
+Branche l'iPhone en USB, puis **double-clique `installer_iphone.command`** (dans le Finder, dossier `native`).
+
+Le script vérifie Xcode, installe Flutter et CocoaPods si besoin, détecte ton iPhone, compile et installe l'app. Quand une étape demande une action de ta part (créer ton certificat la première fois, activer le mode développeur sur l'iPhone), il te dit exactement quoi faire.
+
+> Si macOS refuse de lancer le fichier : clic droit → *Ouvrir* → *Ouvrir* (une seule fois).
+> En ligne de commande : `cd native && ./installer_iphone.command`
+
+### Sur iPhone — à la main (si tu préfères Xcode)
 
 1. `open ios/Runner.xcworkspace` (Xcode)
 2. Onglet **Signing & Capabilities** → coche *Automatically manage signing* → choisis ton **Team** (un compte Apple gratuit suffit)
@@ -77,4 +86,4 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 - `flutter test` : 16 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
-**Non vérifié ici** : la compilation finale sur appareil — elle demande Xcode (Mac) ou le SDK Android, absents de l'environnement de développement. C'est l'étape que tu fais toi-même.
+**Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Elle est donc vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.
