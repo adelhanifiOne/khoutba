@@ -96,7 +96,26 @@ else
 fi
 
 titre "3. Préparation du projet"
-flutter pub get >/dev/null || echec "Échec de « flutter pub get »."
+
+sortie_pub=$(flutter pub get 2>&1)
+if [ $? -ne 0 ]; then
+  # Cause la plus fréquente : le Flutter local est plus ancien que ce que
+  # demandent les dépendances. On propose la mise à jour plutôt que d'abandonner.
+  if echo "$sortie_pub" | grep -qi "version solving failed\|requires SDK version"; then
+    echo "$sortie_pub" | grep -i "requires SDK version\|current Dart SDK" | head -2
+    info "Ton Flutter est trop ancien pour les dépendances du projet."
+    read -r -p "Le mettre à jour maintenant (flutter upgrade) ? [O/n] " reponse
+    if [[ "${reponse:-O}" =~ ^[OoYy]?$ ]]; then
+      flutter upgrade --force || echec "La mise à jour de Flutter a échoué."
+      flutter pub get >/dev/null || echec "Échec de « flutter pub get » après mise à jour."
+    else
+      echec "Dépendances non installées." "Relance le script après « flutter upgrade »."
+    fi
+  else
+    echo "$sortie_pub" | tail -15
+    echec "Échec de « flutter pub get »."
+  fi
+fi
 ok "Dépendances récupérées"
 
 # ------------------------------------------------- 4. certificat de signature
