@@ -6,7 +6,7 @@ Tu es à la mosquée, l'imam parle en arabe et tu ne comprends pas tout ? Lance 
 
 ## Comment ça marche
 
-0. **Tu as déjà un fichier ?** — le bouton d'import prend un audio **ou une vidéo** déjà sur le téléphone (mémo vocal, WhatsApp, vidéo filmée du prêche) et le traite de la même façon.
+0. **Tu as déjà un fichier ?** — le bouton d'import prend un audio **ou une vidéo** déjà sur le téléphone (mémo vocal, WhatsApp, vidéo filmée du prêche) et le traite de la même façon. Sur la [version native](native/), une vidéo importée est ramenée à sa seule piste sonore : ~10 Mo au lieu de ~700 pour un prêche filmé de 11 min. La version web, elle, envoie la vidéo telle quelle — le navigateur ne sait pas la découper.
 1. **À la mosquée** — bouton micro, l'enregistrement démarre. Tout est stocké **sur ton téléphone** (ça marche sans internet). L'audio est sauvegardé toutes les 5 secondes : même si l'app se ferme, rien n'est perdu.
 2. **À la maison** — ouvre l'enregistrement, appuie sur **Transcrire & traduire**. L'app envoie l'audio au service d'IA que tu as choisi, puis affiche :
    - **Résumé** : thème, résumé fidèle, points clés, versets & hadiths cités (arabe + traduction + référence), conseils pratiques, douas ;

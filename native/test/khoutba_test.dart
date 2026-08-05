@@ -1,16 +1,21 @@
 // Tests de la logique métier et de l'affichage, sans dépendance réseau.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/enregistreur.dart';
+import 'package:khoutba/extraction_audio.dart';
 import 'package:khoutba/fournisseurs.dart';
 import 'package:khoutba/import_media.dart';
 import 'package:khoutba/modeles.dart';
 import 'package:khoutba/theme.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() async => initializeDateFormatting('fr_FR', null));
 
   group('Choix du modèle Gemini', () {
@@ -225,5 +230,98 @@ void main() {
       }
     });
 
+  });
+
+  group('Extraction de la piste audio', () {
+    final messager = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    late Directory dossier;
+    late String destination;
+
+    setUp(() {
+      dossier = Directory.systemTemp.createTempSync('khoutba_extraction');
+      destination = '${dossier.path}/piste.m4a';
+    });
+
+    tearDown(() {
+      messager.setMockMethodCallHandler(canalExtraction, null);
+      dossier.deleteSync(recursive: true);
+    });
+
+    /// Simule la partie native (Swift / Kotlin) répondant à l'app.
+    void plateforme(Future<Object?>? Function(MethodCall) reponse) =>
+        messager.setMockMethodCallHandler(canalExtraction, reponse);
+
+    void ecrire(String chemin, int octets) =>
+        File(chemin).writeAsBytesSync(List.filled(octets, 0));
+
+    test('la piste extraite est celle qui sera envoyée', () async {
+      plateforme((appel) async {
+        expect(appel.method, 'extraire');
+        expect(appel.arguments['source'], '/videos/khoutba.mp4');
+        ecrire(appel.arguments['destination'], 9 * 1024 * 1024); // ~9 Mo au lieu de 700
+        return appel.arguments['destination'];
+      });
+      final fichier = await extraireAudio('/videos/khoutba.mp4', destination);
+      expect(fichier?.path, destination);
+    });
+
+    test('vidéo muette : on le dit, au lieu d’envoyer 700 Mo de silence', () async {
+      plateforme((_) => throw PlatformException(code: 'sans_audio'));
+      await expectLater(
+        extraireAudio('/videos/muette.mp4', destination),
+        throwsA(isA<ErreurExtraction>()),
+      );
+    });
+
+    test('échec de l’extraction : repli sur la vidéo, sans erreur', () async {
+      // Un codec inhabituel ne doit pas faire échouer l'import : l'app enverra
+      // la vidéo entière, plus lourde mais exploitable.
+      plateforme((_) => throw PlatformException(code: 'echec', message: 'codec inconnu'));
+      expect(await extraireAudio('/videos/exotique.mkv', destination), isNull);
+    });
+
+    test('app sans partie native : repli sur la vidéo', () async {
+      plateforme((_) => throw MissingPluginException());
+      expect(await extraireAudio('/videos/khoutba.mp4', destination), isNull);
+    });
+
+    test('un fichier à moitié écrit n’est jamais retenu', () async {
+      plateforme((appel) async {
+        ecrire(appel.arguments['destination'], 300); // interrompu
+        throw PlatformException(code: 'echec');
+      });
+      expect(await extraireAudio('/videos/khoutba.mp4', destination), isNull);
+      expect(File(destination).existsSync(), isFalse, reason: 'résidu laissé sur le téléphone');
+    });
+
+    test('fichier annoncé mais absent : traité comme un échec', () async {
+      plateforme((appel) async => appel.arguments['destination']);
+      expect(await extraireAudio('/videos/khoutba.mp4', destination), isNull);
+    });
+
+    test('la progression remonte jusqu’à l’écran', () async {
+      final vues = <double>[];
+      plateforme((appel) async {
+        for (final p in [0.0, 0.5, 3.0]) {
+          await messager.handlePlatformMessage(
+            canalExtraction.name,
+            canalExtraction.codec.encodeMethodCall(MethodCall('progression', p)),
+            (_) {},
+          );
+        }
+        ecrire(appel.arguments['destination'], 2048);
+        return appel.arguments['destination'];
+      });
+      await extraireAudio('/videos/khoutba.mp4', destination,
+          onProgression: vues.add);
+      expect(vues, [0.0, 0.5, 1.0]); // une valeur aberrante est ramenée à 100 %
+    });
+
+    test('le format produit passe aussi chez Whisper', () {
+      // L'extraction vise .m4a : si OpenAI ne l'acceptait pas, seule Gemini
+      // pourrait traiter les vidéos importées.
+      expect(extensionsWhisper, contains('m4a'));
+      expect(mimeSimple('/x/id.m4a'), startsWith('audio/'));
+    });
   });
 }

@@ -20,9 +20,20 @@ Le bouton **« ou importer un audio / une vidéo »** propose deux sources, parc
 
 Le fichier est recopié dans l'app : l'original peut ensuite être déplacé ou supprimé. La date affichée est celle du fichier, pas celle de l'import — une khoutba filmée la semaine dernière garde sa date.
 
-Les fichiers volumineux (une vidéo de 10 min pèse ~700 Mo) sont envoyés **par tranches de 8 Mo**, avec la progression affichée et quelques tentatives par tranche : charger un tel fichier d'un bloc en mémoire fait tuer l'app par iOS.
+### D'une vidéo, on ne garde que le son
 
-Formats : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…) — la piste sonore est extraite par le service d'IA. **Pour une vidéo, choisis Gemini** : Whisper (OpenAI) refuse plusieurs formats vidéo et plafonne à 25 Mo, ce qu'une vidéo dépasse vite. L'app te le dit clairement si le cas se présente.
+Un prêche filmé de 11 min pèse ~700 Mo ; sa piste sonore, une dizaine de Mo. L'image ne sert à rien pour une transcription : à l'import, l'app **isole la piste audio dans un `.m4a`** avant tout envoi. C'est le système qui s'en charge, sans dépendance ajoutée :
+
+- **iOS** : `AVAssetExportSession` (preset Apple M4A) ;
+- **Android** : `MediaExtractor` + `MediaMuxer` — la piste est recopiée telle quelle, sans ré-encodage : quelques secondes de traitement, aucune perte de qualité.
+
+Conséquences directes : l'envoi passe de plusieurs dizaines de minutes à moins d'une, la vidéo n'occupe plus la mémoire du téléphone, et **Whisper (OpenAI) redevient utilisable** — un `.m4a` d'une khoutba tient largement sous sa limite de 25 Mo, ce qu'une vidéo dépassait toujours.
+
+Si le système n'y arrive pas (codec inhabituel), l'import n'échoue pas : la vidéo entière est conservée et envoyée, l'app le signale. Seul cas refusé : une vidéo **sans aucune piste sonore**, où il n'y a rien à transcrire.
+
+Les fichiers restants volumineux sont envoyés **par tranches de 8 Mo**, avec la progression affichée et quelques tentatives par tranche : charger un tel fichier d'un bloc en mémoire fait tuer l'app par iOS.
+
+Formats acceptés : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…).
 
 ## Comment l'enregistrement survit à l'écran éteint
 
@@ -78,18 +89,20 @@ Un **mode démo** permet de voir tout le fonctionnement sans aucune clé.
 
 ```
 lib/
-  main.dart            démarrage, thème, locale française
-  etat.dart            état global partagé (liste, traitement en cours)
-  enregistreur.dart    capture audio + service premier plan + récupération
-  fournisseurs.dart    Gemini / OpenAI / Claude + choix auto du modèle Gemini
-  traitement.dart      chaîne transcription → traduction → synthèse (prompts)
-  stockage.dart        index JSON + fichiers audio
-  reglages.dart        préférences + clés API (stockage sécurisé)
-  import_media.dart    import d'un audio/vidéo depuis Fichiers ou la galerie
-  modeles.dart         structures de données
-  theme.dart           couleurs, styles (clair/sombre, texte arabe)
-  ecrans/              accueil, détail, réglages
-test/khoutba_test.dart 23 tests (modèles Gemini, JSON, statuts, formats, découpage, affichage)
+  main.dart              démarrage, thème, locale française
+  etat.dart              état global partagé (liste, traitement en cours)
+  enregistreur.dart      capture audio + service premier plan + récupération
+  fournisseurs.dart      Gemini / OpenAI / Claude + choix auto du modèle Gemini
+  traitement.dart        chaîne transcription → traduction → synthèse (prompts)
+  stockage.dart          index JSON + fichiers audio
+  reglages.dart          préférences + clés API (stockage sécurisé)
+  import_media.dart      import d'un audio/vidéo depuis Fichiers ou la galerie
+  extraction_audio.dart  isole la piste sonore d'une vidéo (code natif iOS/Android)
+  modeles.dart           structures de données
+  theme.dart             couleurs, styles (clair/sombre, texte arabe)
+  ecrans/                accueil, détail, réglages
+test/khoutba_test.dart   31 tests (modèles Gemini, JSON, statuts, formats,
+                         découpage, extraction audio, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
@@ -97,7 +110,7 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 23 tests au vert
+- `flutter test` : 31 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
-**Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Elle est donc vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.
+**Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

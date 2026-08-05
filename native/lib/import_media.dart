@@ -6,7 +6,8 @@
 //    et que le sélecteur de fichiers d'iOS ne montre pas.
 //
 // Le fichier est recopié dans l'app : l'original peut ensuite être supprimé
-// ou déplacé sans casser l'enregistrement.
+// ou déplacé sans casser l'enregistrement. D'une vidéo, on ne garde que la
+// piste sonore — voir extraction_audio.dart.
 
 import 'dart:io';
 
@@ -16,6 +17,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:uuid/uuid.dart';
 
 import 'enregistreur.dart' show titreParDefaut;
+import 'extraction_audio.dart';
 import 'modeles.dart';
 import 'stockage.dart';
 
@@ -28,6 +30,25 @@ class ErreurImport implements Exception {
   ErreurImport(this.message);
   @override
   String toString() => message;
+}
+
+/// Étapes annoncées pendant l'import, pour que l'attente ait un sens.
+enum EtapeImport {
+  extraction('Extraction de la piste audio…'),
+  copie('Copie du fichier…');
+
+  const EtapeImport(this.libelle);
+  final String libelle;
+}
+
+class ResultatImport {
+  final Enregistrement enregistrement;
+
+  /// Vrai quand c'est une vidéo dont la piste sonore n'a pas pu être isolée :
+  /// le fichier envoyé au service d'IA sera bien plus lourd, autant le dire.
+  final bool videoEntiere;
+
+  const ResultatImport(this.enregistrement, {this.videoEntiere = false});
 }
 
 String _extension(String chemin) {
@@ -53,8 +74,14 @@ Future<XFile?> choisirDansFichiers() async {
 Future<XFile?> choisirVideoGalerie() =>
     ImagePicker().pickVideo(source: ImageSource.gallery);
 
-/// Recopie le fichier choisi dans l'app et crée la fiche correspondante.
-Future<Enregistrement> importer(XFile fichier) async {
+/// Range le fichier choisi dans l'app et crée la fiche correspondante.
+///
+/// Pour une vidéo, seule la piste sonore est conservée : l'image ne sert à
+/// rien pour une transcription, et fait passer le fichier de ~700 Mo à ~10.
+Future<ResultatImport> importer(
+  XFile fichier, {
+  void Function(EtapeImport etape, double? progression)? onProgression,
+}) async {
   final source = File(fichier.path);
   if (!await source.exists()) {
     throw ErreurImport('Fichier introuvable — il a peut-être été déplacé.');
@@ -74,8 +101,31 @@ Future<Enregistrement> importer(XFile fichier) async {
   }
 
   final id = const Uuid().v4();
-  final destination = '${(await Stockage.dossierAudio()).path}/$id.$ext';
-  await source.copy(destination);
+  final dossier = (await Stockage.dossierAudio()).path;
+  String destination;
+  var videoEntiere = false;
+
+  if (extensionsVideo.contains(ext)) {
+    onProgression?.call(EtapeImport.extraction, 0);
+    final extrait = await extraireAudio(
+      source.path,
+      '$dossier/$id.m4a',
+      onProgression: (p) => onProgression?.call(EtapeImport.extraction, p),
+    );
+    if (extrait != null) {
+      destination = extrait.path;
+    } else {
+      // Le système n'a pas su isoler la piste : on garde la vidéo entière.
+      videoEntiere = true;
+      destination = '$dossier/$id.$ext';
+      onProgression?.call(EtapeImport.copie, null);
+      await source.copy(destination);
+    }
+  } else {
+    destination = '$dossier/$id.$ext';
+    onProgression?.call(EtapeImport.copie, null);
+    await source.copy(destination);
+  }
 
   // Titre : le nom du fichier s'il est parlant, sinon la date.
   var titre = fichier.name.replaceFirst(RegExp(r'\.[^.]+$'), '').trim();
@@ -92,7 +142,7 @@ Future<Enregistrement> importer(XFile fichier) async {
     dureeSecondes: await _duree(destination),
   );
   await Stockage.sauver(rec);
-  return rec;
+  return ResultatImport(rec, videoEntiere: videoEntiere);
 }
 
 /// Date de dernière modification du fichier : plus juste que « maintenant »

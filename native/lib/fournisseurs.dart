@@ -105,7 +105,8 @@ String mimeSimple(String chemin) {
       return 'audio/amr';
     case 'webm':
       return 'audio/webm';
-    // Vidéo — la piste sonore est extraite par le service
+    // Vidéo : seulement en repli, quand le téléphone n'a pas su isoler la
+    // piste sonore (voir extraction_audio.dart) — le service s'en charge alors.
     case 'mp4':
     case 'm4v':
       return 'video/mp4';
@@ -126,8 +127,9 @@ String mimeSimple(String chemin) {
 }
 
 /// Extensions acceptées par Whisper (OpenAI). Les autres doivent passer par
-/// Gemini, qui prend la vidéo nativement.
-const _extensionsWhisper = {
+/// Gemini, qui prend la vidéo nativement. Une vidéo importée est convertie en
+/// `.m4a` avant d'arriver ici : cette liste doit donc le contenir.
+const extensionsWhisper = {
   'flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm'
 };
 
@@ -519,7 +521,7 @@ class ClientOpenAI {
 
   Future<String> transcrire(File audio) async {
     final ext = audio.path.toLowerCase().split('.').last;
-    if (!_extensionsWhisper.contains(ext)) {
+    if (!extensionsWhisper.contains(ext)) {
       throw ErreurIA(
         'Whisper (OpenAI) n’accepte pas les fichiers « .$ext ». '
         'Choisis Gemini pour la transcription dans les réglages : il prend ce format.',

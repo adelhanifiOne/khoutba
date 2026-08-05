@@ -4,12 +4,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../enregistreur.dart';
 import '../etat.dart';
+import '../extraction_audio.dart';
 import '../import_media.dart';
 import '../modeles.dart';
 import '../theme.dart';
@@ -147,22 +149,56 @@ class _EcranAccueilState extends State<EcranAccueil> {
     );
     if (source == null || !mounted) return;
 
+    final navigateur = Navigator.of(context, rootNavigator: true);
+    // Le dialogue est le seul auditeur et se retire tout seul : pas de dispose,
+    // qui casserait la fermeture animée.
+    final avancement = ValueNotifier<({String libelle, double? progression})>(
+      (libelle: 'Préparation…', progression: null),
+    );
+    var dialogueOuvert = false;
+
+    void fermerDialogue() {
+      if (!dialogueOuvert) return;
+      dialogueOuvert = false;
+      navigateur.pop();
+    }
+
     try {
       final fichier = source == 'galerie'
           ? await choisirVideoGalerie()
           : await choisirDansFichiers();
-      if (fichier == null) return; // annulé
+      if (fichier == null || !mounted) return; // annulé
 
-      if (mounted) _message('Import en cours…');
-      final rec = await importer(fichier);
+      // Isoler la piste sonore d'une vidéo prend quelques dizaines de secondes :
+      // sans progression affichée, l'app a l'air plantée.
+      dialogueOuvert = true;
+      unawaited(showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _DialogueImport(avancement: avancement),
+      ));
+
+      final resultat = await importer(
+        fichier,
+        onProgression: (etape, p) =>
+            avancement.value = (libelle: etape.libelle, progression: p),
+      );
+      fermerDialogue(); // avant d'ouvrir la fiche, sinon c'est elle qu'on ferme
       await etat.rafraichir();
       if (!mounted) return;
       setState(() {});
-      _message('Fichier importé ✓');
-      _ouvrir(rec);
+      _message(resultat.videoEntiere
+          ? "Vidéo importée — piste audio non extraite, l'envoi sera plus lourd."
+          : 'Fichier importé ✓');
+      _ouvrir(resultat.enregistrement);
     } on ErreurImport catch (e) {
+      fermerDialogue();
+      _message(e.message);
+    } on ErreurExtraction catch (e) {
+      fermerDialogue();
       _message(e.message);
     } catch (e) {
+      fermerDialogue();
       _message("Import impossible : $e");
     }
   }
@@ -429,6 +465,38 @@ class _EcranAccueilState extends State<EcranAccueil> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Attente de l'import : étape en cours et progression quand elle est connue.
+class _DialogueImport extends StatelessWidget {
+  final ValueListenable<({String libelle, double? progression})> avancement;
+  const _DialogueImport({required this.avancement});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PopScope(
+      canPop: false, // l'extraction continue de toute façon : ne pas la masquer
+      child: AlertDialog(
+        content: ValueListenableBuilder(
+          valueListenable: avancement,
+          builder: (context, v, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LinearProgressIndicator(value: v.progression, borderRadius: BorderRadius.circular(4)),
+              const SizedBox(height: 18),
+              Text(v.libelle, textAlign: TextAlign.center),
+              const SizedBox(height: 4),
+              Text(
+                v.progression == null ? '' : '${(v.progression! * 100).round()} %',
+                style: TextStyle(color: theme.hintColor, fontSize: 12.5),
+              ),
+            ],
           ),
         ),
       ),
