@@ -13,6 +13,7 @@ import 'package:khoutba/fournisseurs.dart';
 import 'package:khoutba/import_media.dart';
 import 'package:khoutba/modeles.dart';
 import 'package:khoutba/theme.dart';
+import 'package:khoutba/traitement.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -315,6 +316,39 @@ void main() {
       await extraireAudio('/videos/khoutba.mp4', destination,
           onProgression: vues.add);
       expect(vues, [0.0, 0.5, 1.0]); // une valeur aberrante est ramenée à 100 %
+    });
+
+    test('un envoi lent reste visiblement vivant', () {
+      // Sur 1221 Mo, chaque tranche de 8 Mo n'avance le pourcentage que de
+      // 0,65 % : l'utilisateur a vu « 1 % » figé et cru l'app plantée.
+      const total = 1280 * 1024 * 1024;
+      String envoi(int tranches) => AvancementTraitement(
+            Phase.transcription,
+            progression: tranches * 8 * 1048576 / total,
+            octetsEnvoyes: tranches * 8 * 1048576,
+            octetsTotal: total,
+          ).libelle;
+      expect(envoi(1), 'Envoi du fichier… 8 / 1280 Mo');
+      expect(envoi(2), 'Envoi du fichier… 16 / 1280 Mo');
+      expect(envoi(1), isNot(envoi(2))); // le libellé bouge à chaque tranche
+    });
+
+    test('les étapes d’attente s’annoncent', () {
+      expect(const AvancementTraitement(Phase.extraction, progression: 0.42).libelle,
+          'Extraction de la piste audio… 42 %');
+      expect(const AvancementTraitement(Phase.transcription).libelle, contains('Transcription'));
+    });
+
+    test('un nom de fichier technique ne devient pas un titre', () {
+      // Vu sur l'iPhone : « image_picker_97CB37EA-47A1-… » en titre de khoutba.
+      expect(estTitreTechnique('image_picker_97CB37EA-47A1-4F4E-B0C4-2F1A'), isTrue);
+      expect(estTitreTechnique('97CB37EA-47A1-4F4E-B0C4-2F1A'), isTrue);
+      expect(estTitreTechnique('IMG_4821'), isTrue);
+      expect(estTitreTechnique('trim.A1B2C3'), isTrue);
+      // …mais un vrai nom donné par l'utilisateur est respecté.
+      expect(estTitreTechnique('Khoutba sur la patience'), isFalse);
+      expect(estTitreTechnique('imam Bensalem 12-07'), isFalse);
+      expect(estTitreTechnique('Enregistrement mosquée'), isFalse);
     });
 
     test('le format produit passe aussi chez Whisper', () {

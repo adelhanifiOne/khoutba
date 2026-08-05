@@ -31,6 +31,8 @@ Conséquences directes : l'envoi passe de plusieurs dizaines de minutes à moins
 
 Si le système n'y arrive pas (codec inhabituel), l'import n'échoue pas : la vidéo entière est conservée et envoyée, l'app le signale. Seul cas refusé : une vidéo **sans aucune piste sonore**, où il n'y a rien à transcrire.
 
+Une vidéo déjà dans l'app — importée avant cette version, ou dont l'extraction avait échoué — est **rattrapée au moment de « Transcrire & traduire »** : la piste est isolée juste avant l'envoi et la vidéo effacée, ce qui rend au passage ses centaines de Mo au téléphone.
+
 Les fichiers restants volumineux sont envoyés **par tranches de 8 Mo**, avec la progression affichée et quelques tentatives par tranche : charger un tel fichier d'un bloc en mémoire fait tuer l'app par iOS.
 
 Formats acceptés : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…).
@@ -101,7 +103,7 @@ lib/
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                accueil, détail, réglages
-test/khoutba_test.dart   31 tests (modèles Gemini, JSON, statuts, formats,
+test/khoutba_test.dart   34 tests (modèles Gemini, JSON, statuts, formats,
                          découpage, extraction audio, affichage)
 ```
 
@@ -110,7 +112,7 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 31 tests au vert
+- `flutter test` : 34 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

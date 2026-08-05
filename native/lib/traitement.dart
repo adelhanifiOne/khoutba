@@ -6,7 +6,9 @@
 
 import 'dart:io';
 
+import 'extraction_audio.dart';
 import 'fournisseurs.dart';
+import 'import_media.dart' show estVideo;
 import 'modeles.dart';
 import 'reglages.dart';
 import 'stockage.dart';
@@ -95,24 +97,42 @@ const schemaSynthese = <String, dynamic>{
 
 // -------------------------------------------------------------- orchestration
 
-enum Phase { transcription, traduction, synthese, termine }
+enum Phase { extraction, transcription, traduction, synthese, termine }
+
+String _mo(int octets) => (octets / 1048576).round().toString();
 
 class AvancementTraitement {
   final Phase phase;
   final String? partiel;
 
-  /// Progression de l'envoi du fichier, entre 0 et 1. Sur une vidéo de
-  /// plusieurs centaines de mégaoctets, l'envoi dure : sans ce retour, on
-  /// croit l'app bloquée.
-  final double? envoi;
+  /// Progression de l'étape en cours (extraction, envoi), entre 0 et 1.
+  final double? progression;
 
-  const AvancementTraitement(this.phase, {this.partiel, this.envoi});
+  /// Octets envoyés et taille totale. Un pourcentage seul est trompeur sur un
+  /// gros fichier : à 1 % près, l'envoi a l'air figé pendant plusieurs minutes
+  /// alors qu'il avance. Les mégaoctets, eux, bougent.
+  final int? octetsEnvoyes;
+  final int? octetsTotal;
+
+  const AvancementTraitement(
+    this.phase, {
+    this.partiel,
+    this.progression,
+    this.octetsEnvoyes,
+    this.octetsTotal,
+  });
 
   String get libelle {
     switch (phase) {
+      case Phase.extraction:
+        final p = progression == null ? '' : ' ${(progression! * 100).round()} %';
+        return 'Extraction de la piste audio…$p';
       case Phase.transcription:
-        if (envoi != null) {
-          return 'Envoi du fichier… ${(envoi! * 100).round()} %';
+        if (octetsTotal != null && octetsTotal! > 0) {
+          return 'Envoi du fichier… ${_mo(octetsEnvoyes ?? 0)} / ${_mo(octetsTotal!)} Mo';
+        }
+        if (progression != null) {
+          return 'Envoi du fichier… ${(progression! * 100).round()} %';
         }
         return 'Transcription de l’arabe en cours… (quelques minutes)';
       case Phase.traduction:
@@ -158,7 +178,12 @@ class Traitement {
           promptTranscription,
           modele: r.modeleGemini,
           onProgression: (envoye, total) => onAvancement?.call(
-            AvancementTraitement(Phase.transcription, envoi: total > 0 ? envoye / total : null),
+            AvancementTraitement(
+              Phase.transcription,
+              progression: total > 0 ? envoye / total : null,
+              octetsEnvoyes: envoye,
+              octetsTotal: total,
+            ),
           ),
         );
       case 'openai':
@@ -166,6 +191,35 @@ class Traitement {
       default:
         throw ErreurIA('Choisis un service de transcription dans les réglages (Gemini ou OpenAI).');
     }
+  }
+
+  /// Rattrapage : une vidéo enregistrée avant que l'app sache isoler le son
+  /// (ou dont l'extraction avait échoué) est réduite ici, juste avant l'envoi.
+  /// Sans ça, ce sont plus d'un gigaoctet d'images qui partent sur le réseau
+  /// pour une transcription qui n'en a aucun besoin.
+  static Future<void> _reduireVideo(
+    Enregistrement rec,
+    Reglages r, {
+    void Function(AvancementTraitement)? onAvancement,
+  }) async {
+    if (r.demo || !estVideo(rec.cheminAudio)) return;
+    final video = File(rec.cheminAudio);
+    if (!await video.exists()) return;
+
+    onAvancement?.call(const AvancementTraitement(Phase.extraction, progression: 0));
+    final extrait = await extraireAudio(
+      video.path,
+      rec.cheminAudio.replaceFirst(RegExp(r'\.[^.]+$'), '.m4a'),
+      onProgression: (p) =>
+          onAvancement?.call(AvancementTraitement(Phase.extraction, progression: p)),
+    );
+    if (extrait == null) return; // système dépassé : on enverra la vidéo
+
+    rec.cheminAudio = extrait.path;
+    await Stockage.sauver(rec);
+    try {
+      await video.delete(); // les centaines de Mo rendues au téléphone
+    } catch (_) {}
   }
 
   static Future<String> _generer(
@@ -224,6 +278,7 @@ class Traitement {
         rec.statut = Statut.transcription;
         rec.erreur = null;
         await Stockage.sauver(rec);
+        await _reduireVideo(rec, r, onAvancement: onAvancement);
         onAvancement?.call(const AvancementTraitement(Phase.transcription));
         rec.transcription = (await _transcrire(rec, r, onAvancement: onAvancement)).trim();
         rec.statut = Statut.transcrit;

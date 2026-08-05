@@ -114,6 +114,9 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
     } catch (e) {
       _message('Échec : $e');
     }
+    // Une vidéo a pu être réduite à sa piste audio en cours de route : le
+    // lecteur et la taille affichée pointeraient sinon sur un fichier effacé.
+    await _preparerAudio();
     if (mounted) setState(() {});
   }
 

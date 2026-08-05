@@ -41,6 +41,9 @@ const choixModelesClaude = <String, String>{
 
 const _delaiCourt = Duration(seconds: 60);
 const _delaiLong = Duration(minutes: 15); // transcription d'une khoutba entière
+// Un morceau de 8 Mo qui met plus de ça à partir signale une connexion morte,
+// pas lente : au-delà, l'envoi complet ne finirait de toute façon jamais.
+const _delaiMorceau = Duration(minutes: 4);
 
 ErreurIA _erreurHttp(String nom, int statut, String corps) {
   var detail = corps;
@@ -361,7 +364,7 @@ class ClientGemini {
             'content-type': 'application/octet-stream',
           },
           body: morceau,
-        ).timeout(_delaiLong);
+        ).timeout(_delaiMorceau);
         if (rep.statusCode == 200) return rep;
         // Une erreur 4xx ne s'arrangera pas en insistant.
         if (rep.statusCode < 500) {

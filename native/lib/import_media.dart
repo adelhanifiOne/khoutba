@@ -59,6 +59,14 @@ String _extension(String chemin) {
 
 bool estVideo(String chemin) => extensionsVideo.contains(_extension(chemin));
 
+/// Vrai si le nom du fichier ne dit rien à un humain — nom d'appareil photo,
+/// ou fichier temporaire fabriqué par le sélecteur (`image_picker_97CB37EA-…`).
+/// Dans ce cas on préfère « Khoutba du vendredi 24 juillet ».
+bool estTitreTechnique(String titre) =>
+    RegExp(r'^(IMG|VID|AUD|PXL|MOV|video|audio)[-_ ]?\d*$', caseSensitive: false).hasMatch(titre) ||
+    RegExp(r'^(image_picker|file_picker|trim|capture|rec)[-_.]', caseSensitive: false).hasMatch(titre) ||
+    RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-', caseSensitive: false).hasMatch(titre);
+
 /// Ouvre l'app Fichiers et renvoie le fichier choisi, ou null si annulé.
 Future<XFile?> choisirDansFichiers() async {
   const groupe = XTypeGroup(
@@ -129,8 +137,7 @@ Future<ResultatImport> importer(
 
   // Titre : le nom du fichier s'il est parlant, sinon la date.
   var titre = fichier.name.replaceFirst(RegExp(r'\.[^.]+$'), '').trim();
-  final anonyme = titre.isEmpty ||
-      RegExp(r'^(IMG|VID|AUD|PXL|MOV|video|audio)[-_ ]?\d*$', caseSensitive: false).hasMatch(titre);
+  final anonyme = titre.isEmpty || estTitreTechnique(titre);
   if (anonyme) titre = titreParDefaut(DateTime.now());
 
   final rec = Enregistrement(
