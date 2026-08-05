@@ -20,6 +20,8 @@ Le bouton **« ou importer un audio / une vidéo »** propose deux sources, parc
 
 Le fichier est recopié dans l'app : l'original peut ensuite être déplacé ou supprimé. La date affichée est celle du fichier, pas celle de l'import — une khoutba filmée la semaine dernière garde sa date.
 
+Les fichiers volumineux (une vidéo de 10 min pèse ~700 Mo) sont envoyés **par tranches de 8 Mo**, avec la progression affichée et quelques tentatives par tranche : charger un tel fichier d'un bloc en mémoire fait tuer l'app par iOS.
+
 Formats : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…) — la piste sonore est extraite par le service d'IA. **Pour une vidéo, choisis Gemini** : Whisper (OpenAI) refuse plusieurs formats vidéo et plafonne à 25 Mo, ce qu'une vidéo dépasse vite. L'app te le dit clairement si le cas se présente.
 
 ## Comment l'enregistrement survit à l'écran éteint
@@ -87,7 +89,7 @@ lib/
   modeles.dart         structures de données
   theme.dart           couleurs, styles (clair/sombre, texte arabe)
   ecrans/              accueil, détail, réglages
-test/khoutba_test.dart 21 tests (modèles Gemini, JSON, statuts, formats, affichage)
+test/khoutba_test.dart 23 tests (modèles Gemini, JSON, statuts, formats, découpage, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
@@ -95,7 +97,7 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 21 tests au vert
+- `flutter test` : 23 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Elle est donc vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

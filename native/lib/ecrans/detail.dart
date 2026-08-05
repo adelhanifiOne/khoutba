@@ -29,6 +29,7 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
   late final TabController _onglets = TabController(length: 3, vsync: this);
   late final TextEditingController _titre;
   bool _audioPret = false;
+  String _taille = ''; // affichée : une vidéo lourde explique un envoi long
 
   Enregistrement? get rec => etat.parId(widget.idEnregistrement);
 
@@ -44,6 +45,12 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
   Future<void> _preparerAudio() async {
     final r = rec;
     if (r == null) return;
+    try {
+      final octets = await File(r.cheminAudio).length();
+      _taille = octets >= 1048576
+          ? '${(octets / 1048576).toStringAsFixed(0)} Mo'
+          : '${(octets / 1024).toStringAsFixed(0)} Ko';
+    } catch (_) {}
     try {
       final duree = await _lecteur.setFilePath(r.cheminAudio);
       _audioPret = true;
@@ -246,7 +253,8 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
                   children: [
                     Expanded(
                       child: Text(
-                        '${formaterDate(r.creeLe)} · ${formaterDuree(r.dureeSecondes)}',
+                        '${formaterDate(r.creeLe)} · ${formaterDuree(r.dureeSecondes)}'
+                        '${_taille.isEmpty ? '' : ' · $_taille'}',
                         style: TextStyle(fontSize: 12.5, color: theme.hintColor),
                       ),
                     ),

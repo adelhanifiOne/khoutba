@@ -37,14 +37,17 @@ function erreurHttp(nom, statut, corps) {
   return e;
 }
 
-function erreurReseau(nom) {
-  return new Error(`${nom} : impossible de joindre le service. Vérifie ta connexion internet.`);
+// La cause réelle est conservée : sans elle, un délai dépassé, un refus CORS
+// ou une coupure se ressemblent tous, et on accuse à tort la connexion.
+function erreurReseau(nom, cause) {
+  const detail = cause?.message || cause || 'cause inconnue';
+  return new Error(`${nom} : échec de l'envoi — ${String(detail).slice(0, 200)}`);
 }
 
 async function fetchJson(nom, url, options) {
   let rep;
   try { rep = await fetch(url, options); }
-  catch { throw erreurReseau(nom); }
+  catch (e) { throw erreurReseau(nom, e); }
   if (!rep.ok) throw erreurHttp(nom, rep.status, await rep.text().catch(() => ''));
   return rep.json();
 }
@@ -185,7 +188,7 @@ async function geminiAppel(cle, modele, contents, generationConfig, systemInstru
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(corps),
     });
-  } catch { throw erreurReseau('Gemini'); }
+  } catch (e) { throw erreurReseau('Gemini', e); }
 
   if (!rep.ok) {
     const texteErreur = await rep.text().catch(() => '');
@@ -243,7 +246,7 @@ async function geminiUploadFichier(cle, blob, mimeType) {
       },
       body: JSON.stringify({ file: { display_name: 'khoutba-audio' } }),
     });
-  } catch { throw erreurReseau('Gemini (upload)'); }
+  } catch (e) { throw erreurReseau('Gemini (upload)', e); }
   if (!rep.ok) throw erreurHttp('Gemini (upload)', rep.status, await rep.text().catch(() => ''));
 
   const urlUpload = rep.headers.get('x-goog-upload-url');
@@ -343,7 +346,7 @@ export async function transcrireOpenAI(cle, blob, mimeType) {
       headers: { authorization: `Bearer ${cle}` },
       body: form,
     });
-  } catch { throw erreurReseau('OpenAI (Whisper)'); }
+  } catch (e) { throw erreurReseau('OpenAI (Whisper)', e); }
   if (!rep.ok) throw erreurHttp('OpenAI (Whisper)', rep.status, await rep.text().catch(() => ''));
   return (await rep.text()).trim();
 }
@@ -372,7 +375,7 @@ export async function genererOpenAI(cle, { system, user, schema, onDelta }) {
       headers: { authorization: `Bearer ${cle}`, 'content-type': 'application/json' },
       body: JSON.stringify(corps),
     });
-  } catch { throw erreurReseau('OpenAI'); }
+  } catch (e) { throw erreurReseau('OpenAI', e); }
   if (!rep.ok) throw erreurHttp('OpenAI', rep.status, await rep.text().catch(() => ''));
 
   let texte = '';
@@ -413,7 +416,7 @@ export async function genererClaude(cle, { modele, system, user, schema, onDelta
       },
       body: JSON.stringify(corps),
     });
-  } catch { throw erreurReseau('Claude'); }
+  } catch (e) { throw erreurReseau('Claude', e); }
   if (!rep.ok) throw erreurHttp('Claude', rep.status, await rep.text().catch(() => ''));
 
   let texte = '';

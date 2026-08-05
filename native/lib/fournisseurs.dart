@@ -6,8 +6,10 @@
 // - Claude  : traduction/synthèse
 // - démo    : contenu fictif, pour essayer sans clé
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
@@ -56,8 +58,24 @@ ErreurIA _erreurHttp(String nom, int statut, String corps) {
   return ErreurIA('$nom : erreur $statut — $detail', modeleIndisponible: indispo);
 }
 
-Never _erreurReseau(String nom) =>
-    throw ErreurIA('$nom : impossible de joindre le service. Vérifie ta connexion internet.');
+/// Erreur de transport. La cause réelle est conservée : sans elle, un délai
+/// dépassé, un manque de mémoire ou un refus TLS se ressemblent tous, et on
+/// accuse à tort la connexion de l'utilisateur.
+Never _erreurReseau(String nom, Object cause) {
+  if (cause is TimeoutException) {
+    throw ErreurIA(
+      '$nom : délai dépassé. Le fichier est peut-être trop lourd pour ta connexion — '
+      'réessaie en Wi-Fi, ou avec un extrait plus court.',
+    );
+  }
+  var detail = cause.toString();
+  if (cause is http.ClientException) detail = cause.message;
+  if (cause is SocketException) {
+    throw ErreurIA('$nom : pas de connexion au service (${cause.osError?.message ?? 'réseau injoignable'}).');
+  }
+  if (detail.length > 200) detail = '${detail.substring(0, 200)}…';
+  throw ErreurIA('$nom : échec de l’envoi — $detail');
+}
 
 /// Type MIME du fichier, déduit de son extension.
 ///
@@ -136,6 +154,30 @@ Map<String, dynamic> parseJsonSouple(String texte) {
 
 const _geminiBase = 'https://generativelanguage.googleapis.com';
 const _limiteInline = 15 * 1024 * 1024; // au-delà : upload via l'API Files
+const tailleMorceauEnvoi = 8 * 1024 * 1024; // envoi tranche par tranche
+
+/// Un morceau de fichier à envoyer.
+class MorceauEnvoi {
+  final int position;
+  final int longueur;
+  final bool dernier;
+  const MorceauEnvoi(this.position, this.longueur, this.dernier);
+}
+
+/// Découpe un fichier de [taille] octets en morceaux consécutifs.
+/// Fonction pure : un décalage d'un octet corromprait le fichier envoyé
+/// sans qu'aucune erreur ne le signale, d'où les tests dédiés.
+List<MorceauEnvoi> morceauxPour(int taille, {int tailleMorceau = tailleMorceauEnvoi}) {
+  if (taille <= 0) return const [];
+  final morceaux = <MorceauEnvoi>[];
+  var position = 0;
+  while (position < taille) {
+    final longueur = math.min(tailleMorceau, taille - position);
+    morceaux.add(MorceauEnvoi(position, longueur, position + longueur >= taille));
+    position += longueur;
+  }
+  return morceaux;
+}
 
 class ModeleGemini {
   final String id;
@@ -198,8 +240,8 @@ class ClientGemini {
     http.Response rep;
     try {
       rep = await http.get(url).timeout(_delaiCourt);
-    } catch (_) {
-      _erreurReseau('Gemini');
+    } catch (e) {
+      _erreurReseau('Gemini', e);
     }
     if (rep.statusCode != 200) throw _erreurHttp('Gemini', rep.statusCode, rep.body);
     final data = jsonDecode(utf8.decode(rep.bodyBytes));
@@ -253,8 +295,8 @@ class ClientGemini {
       rep = await http
           .post(url, headers: {'content-type': 'application/json'}, body: jsonEncode(corps))
           .timeout(delai);
-    } catch (_) {
-      _erreurReseau('Gemini');
+    } catch (e) {
+      _erreurReseau('Gemini', e);
     }
 
     if (rep.statusCode != 200) {
@@ -302,7 +344,43 @@ class ClientGemini {
     throw derniere ?? ErreurIA('Gemini : aucun modèle disponible avec cette clé.');
   }
 
-  Future<Map<String, dynamic>> _televerserFichier(File fichier, String mime) async {
+  /// Envoie un morceau, avec quelques tentatives : sur un réseau mobile, une
+  /// coupure passagère ne doit pas condamner un envoi de plusieurs minutes.
+  Future<http.Response> _envoyerMorceau(
+      String url, List<int> morceau, int position, bool dernier) async {
+    Object? derniereErreur;
+    for (var tentative = 1; tentative <= 3; tentative++) {
+      try {
+        final rep = await http.post(
+          Uri.parse(url),
+          headers: {
+            'x-goog-upload-offset': '$position',
+            'x-goog-upload-command': dernier ? 'upload, finalize' : 'upload',
+            'content-type': 'application/octet-stream',
+          },
+          body: morceau,
+        ).timeout(_delaiLong);
+        if (rep.statusCode == 200) return rep;
+        // Une erreur 4xx ne s'arrangera pas en insistant.
+        if (rep.statusCode < 500) {
+          throw _erreurHttp('Gemini (envoi du fichier)', rep.statusCode, rep.body);
+        }
+        derniereErreur = ErreurIA('erreur ${rep.statusCode}');
+      } on ErreurIA {
+        rethrow;
+      } catch (e) {
+        derniereErreur = e;
+      }
+      await Future.delayed(Duration(seconds: 2 * tentative));
+    }
+    _erreurReseau('Gemini (envoi du fichier)', derniereErreur!);
+  }
+
+  Future<Map<String, dynamic>> _televerserFichier(
+    File fichier,
+    String mime, {
+    void Function(int envoye, int total)? onProgression,
+  }) async {
     final taille = await fichier.length();
     http.Response rep;
     try {
@@ -319,23 +397,31 @@ class ClientGemini {
           'file': {'display_name': 'khoutba-audio'}
         }),
       ).timeout(_delaiCourt);
-    } catch (_) {
-      _erreurReseau('Gemini (envoi du fichier)');
+    } catch (e) {
+      _erreurReseau('Gemini (ouverture de l’envoi)', e);
     }
     if (rep.statusCode != 200) {
-      throw _erreurHttp('Gemini (envoi du fichier)', rep.statusCode, rep.body);
+      throw _erreurHttp('Gemini (ouverture de l’envoi)', rep.statusCode, rep.body);
     }
     final urlUpload = rep.headers['x-goog-upload-url'];
     if (urlUpload == null) throw ErreurIA('Gemini : URL de téléversement absente.');
 
-    final rep2 = await http.post(
-      Uri.parse(urlUpload),
-      headers: {'x-goog-upload-offset': '0', 'x-goog-upload-command': 'upload, finalize'},
-      body: await fichier.readAsBytes(),
-    ).timeout(_delaiLong);
-    if (rep2.statusCode != 200) {
-      throw _erreurHttp('Gemini (envoi du fichier)', rep2.statusCode, rep2.body);
+    // Envoi par morceaux. Une vidéo de prêche pèse facilement plusieurs
+    // centaines de mégaoctets : la charger entièrement en mémoire fait tuer
+    // l'app par le système. On lit le fichier tranche par tranche.
+    final acces = await fichier.open();
+    http.Response? rep2;
+    try {
+      for (final m in morceauxPour(taille)) {
+        await acces.setPosition(m.position);
+        final donnees = await acces.read(m.longueur);
+        rep2 = await _envoyerMorceau(urlUpload, donnees, m.position, m.dernier);
+        onProgression?.call(m.position + m.longueur, taille);
+      }
+    } finally {
+      await acces.close();
     }
+    if (rep2 == null) throw ErreurIA('Gemini : fichier vide, rien à envoyer.');
 
     var info = Map<String, dynamic>.from(jsonDecode(utf8.decode(rep2.bodyBytes))['file']);
     // Attendre la fin du traitement côté Google (≈ quelques secondes).
@@ -357,7 +443,12 @@ class ClientGemini {
     return info;
   }
 
-  Future<String> transcrire(File audio, String prompt, {String? modele}) async {
+  Future<String> transcrire(
+    File audio,
+    String prompt, {
+    String? modele,
+    void Function(int envoye, int total)? onProgression,
+  }) async {
     final mime = mimeSimple(audio.path);
     final Map<String, dynamic> partAudio;
     if (await audio.length() <= _limiteInline) {
@@ -365,7 +456,7 @@ class ClientGemini {
         'inlineData': {'mimeType': mime, 'data': base64Encode(await audio.readAsBytes())}
       };
     } else {
-      final fichier = await _televerserFichier(audio, mime);
+      final fichier = await _televerserFichier(audio, mime, onProgression: onProgression);
       partAudio = {
         'fileData': {'mimeType': mime, 'fileUri': fichier['uri']}
       };
@@ -453,8 +544,8 @@ class ClientOpenAI {
     http.Response rep;
     try {
       rep = await http.Response.fromStream(await requete.send().timeout(_delaiLong));
-    } catch (_) {
-      _erreurReseau('OpenAI (Whisper)');
+    } catch (e) {
+      _erreurReseau('OpenAI (Whisper)', e);
     }
     if (rep.statusCode != 200) {
       throw _erreurHttp('OpenAI (Whisper)', rep.statusCode, utf8.decode(rep.bodyBytes));
@@ -576,8 +667,8 @@ Future<String> _lireFluxSSE({
   try {
     try {
       rep = await client.send(requete).timeout(_delaiLong);
-    } catch (_) {
-      _erreurReseau(nom);
+    } catch (e) {
+      _erreurReseau(nom, e);
     }
     if (rep.statusCode != 200) {
       final corps = await rep.stream.bytesToString();

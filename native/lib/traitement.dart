@@ -100,11 +100,20 @@ enum Phase { transcription, traduction, synthese, termine }
 class AvancementTraitement {
   final Phase phase;
   final String? partiel;
-  const AvancementTraitement(this.phase, {this.partiel});
+
+  /// Progression de l'envoi du fichier, entre 0 et 1. Sur une vidéo de
+  /// plusieurs centaines de mégaoctets, l'envoi dure : sans ce retour, on
+  /// croit l'app bloquée.
+  final double? envoi;
+
+  const AvancementTraitement(this.phase, {this.partiel, this.envoi});
 
   String get libelle {
     switch (phase) {
       case Phase.transcription:
+        if (envoi != null) {
+          return 'Envoi du fichier… ${(envoi! * 100).round()} %';
+        }
         return 'Transcription de l’arabe en cours… (quelques minutes)';
       case Phase.traduction:
         final n = partiel == null ? '' : ' — ${partiel!.length} caractères';
@@ -130,7 +139,11 @@ class Traitement {
     return cle;
   }
 
-  static Future<String> _transcrire(Enregistrement rec, Reglages r) async {
+  static Future<String> _transcrire(
+    Enregistrement rec,
+    Reglages r, {
+    void Function(AvancementTraitement)? onAvancement,
+  }) async {
     final stt = r.demo ? 'demo' : r.stt;
     final fichier = File(rec.cheminAudio);
     if (!await fichier.exists() && stt != 'demo') {
@@ -140,8 +153,14 @@ class Traitement {
       case 'demo':
         return ClientDemo().transcrire();
       case 'gemini':
-        return ClientGemini(_cle(r, 'gemini'))
-            .transcrire(fichier, promptTranscription, modele: r.modeleGemini);
+        return ClientGemini(_cle(r, 'gemini')).transcrire(
+          fichier,
+          promptTranscription,
+          modele: r.modeleGemini,
+          onProgression: (envoye, total) => onAvancement?.call(
+            AvancementTraitement(Phase.transcription, envoi: total > 0 ? envoye / total : null),
+          ),
+        );
       case 'openai':
         return ClientOpenAI(_cle(r, 'openai')).transcrire(fichier);
       default:
@@ -206,7 +225,7 @@ class Traitement {
         rec.erreur = null;
         await Stockage.sauver(rec);
         onAvancement?.call(const AvancementTraitement(Phase.transcription));
-        rec.transcription = (await _transcrire(rec, r)).trim();
+        rec.transcription = (await _transcrire(rec, r, onAvancement: onAvancement)).trim();
         rec.statut = Statut.transcrit;
         await Stockage.sauver(rec);
       }

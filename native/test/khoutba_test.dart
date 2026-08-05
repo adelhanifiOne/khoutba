@@ -181,6 +181,37 @@ void main() {
       expect(estVideo('/x/a'), isFalse);
     });
 
+    test('découpage d’un gros fichier : couverture exacte, sans trou', () {
+      // Une vidéo de prêche de 11 min pèse ~700 Mo. Un décalage d'un octet
+      // enverrait un fichier corrompu sans lever la moindre erreur.
+      for (final taille in [1, 100, 8 * 1024 * 1024, 8 * 1024 * 1024 + 1, 734003200]) {
+        final morceaux = morceauxPour(taille);
+        expect(morceaux.first.position, 0, reason: 'taille $taille');
+        expect(morceaux.fold<int>(0, (t, m) => t + m.longueur), taille,
+            reason: 'total envoyé ≠ taille du fichier ($taille)');
+        for (var i = 1; i < morceaux.length; i++) {
+          expect(morceaux[i].position, morceaux[i - 1].position + morceaux[i - 1].longueur,
+              reason: 'trou ou chevauchement à $taille');
+        }
+        expect(morceaux.where((m) => m.dernier).length, 1,
+            reason: 'un seul morceau doit clore l’envoi ($taille)');
+        expect(morceaux.last.dernier, isTrue);
+      }
+    });
+
+    test('découpage : cas limites', () {
+      expect(morceauxPour(0), isEmpty);
+      expect(morceauxPour(-5), isEmpty);
+      // Un fichier plus petit qu'un morceau part en une seule fois
+      final petit = morceauxPour(1024, tailleMorceau: 8192);
+      expect(petit.length, 1);
+      expect(petit.single.dernier, isTrue);
+      // Taille exactement multiple : pas de morceau vide à la fin
+      final pile = morceauxPour(16384, tailleMorceau: 8192);
+      expect(pile.length, 2);
+      expect(pile.every((m) => m.longueur == 8192), isTrue);
+    });
+
     test('tous les formats proposés à l’import ont un type MIME connu', () {
       // Garde-fou : un format offert dans le sélecteur mais non reconnu
       // partirait vers l'IA avec un type erroné.
