@@ -4,8 +4,10 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.StatFs
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -30,6 +32,10 @@ class ExtractionAudio(messenger: BinaryMessenger) : MethodChannel.MethodCallHand
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method == "espaceLibre") {
+            result.success(espaceLibre())
+            return
+        }
         if (call.method != "extraire") {
             result.notImplemented()
             return
@@ -43,6 +49,14 @@ class ExtractionAudio(messenger: BinaryMessenger) : MethodChannel.MethodCallHand
         // Plusieurs centaines de Mo à parcourir : jamais sur le fil principal.
         thread(name = "extraction-audio") { extraire(source, destination, result) }
     }
+
+    /** Octets disponibles sur la mémoire interne, ou -1 si la lecture échoue. */
+    private fun espaceLibre(): Long =
+        try {
+            StatFs(Environment.getDataDirectory().path).availableBytes
+        } catch (e: Throwable) {
+            -1L
+        }
 
     private fun extraire(source: String, destination: String, result: MethodChannel.Result) {
         val sortie = File(destination)

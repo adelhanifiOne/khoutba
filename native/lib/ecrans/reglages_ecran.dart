@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 
 import '../etat.dart';
+import '../extraction_audio.dart';
 import '../fournisseurs.dart';
+import '../import_media.dart' show tailleLisible;
 import '../stockage.dart';
 
 class EcranReglages extends StatefulWidget {
@@ -27,7 +29,12 @@ class _EcranReglagesState extends State<EcranReglages> {
 
   Future<void> _calculerStockage() async {
     final octets = await Stockage.tailleUtilisee();
-    if (mounted) setState(() => _stockage = '${(octets / 1048576).toStringAsFixed(1)} Mo');
+    final libre = await espaceLibre();
+    if (!mounted) return;
+    // La place restante à côté : c'est elle qui décide si un import passera.
+    setState(() => _stockage = libre == null
+        ? tailleLisible(octets)
+        : '${tailleLisible(octets)} · ${tailleLisible(libre)} libres');
   }
 
   /// Liste les modèles Gemini réellement accessibles avec la clé saisie.

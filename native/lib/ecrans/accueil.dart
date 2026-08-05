@@ -40,18 +40,28 @@ class EcranAccueil extends StatefulWidget {
 
 class _EcranAccueilState extends State<EcranAccueil> {
   final etat = EtatApp.instance;
+  bool _demarrageAnnonce = false;
 
   @override
   void initState() {
     super.initState();
     etat.enregistreur.onArretAuto = _terminer;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _signalerRecuperation());
   }
 
-  void _signalerRecuperation() {
-    if (etat.messageRecuperation == null || !mounted) return;
-    etat.messageRecuperation = null;
-    _message('Un enregistrement interrompu a été récupéré ✓');
+  /// Appelé une fois le chargement terminé — pas au premier frame : à ce
+  /// moment-là `initialiser()` n'a pas encore fini et il n'y a rien à dire.
+  void _signalerDemarrage() {
+    if (!mounted) return;
+    if (etat.messageRecuperation != null) {
+      etat.messageRecuperation = null;
+      _message('Un enregistrement interrompu a été récupéré ✓');
+      return;
+    }
+    if (etat.octetsLiberes >= 50 * 1024 * 1024) {
+      final rendus = tailleLisible(etat.octetsLiberes);
+      etat.octetsLiberes = 0;
+      _message('$rendus rendus au téléphone (fichiers d’imports abandonnés).');
+    }
   }
 
   void _message(String texte) {
@@ -209,6 +219,10 @@ class _EcranAccueilState extends State<EcranAccueil> {
       listenable: Listenable.merge([etat, etat.enregistreur, etat.reglages]),
       builder: (context, _) {
         final enr = etat.enregistreur;
+        if (!etat.chargement && !_demarrageAnnonce) {
+          _demarrageAnnonce = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) => _signalerDemarrage());
+        }
         return Scaffold(
           body: SafeArea(
             child: Stack(

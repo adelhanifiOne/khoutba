@@ -10,6 +10,7 @@
 // piste sonore — voir extraction_audio.dart.
 
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:image_picker/image_picker.dart';
@@ -49,6 +50,57 @@ class ResultatImport {
   final bool videoEntiere;
 
   const ResultatImport(this.enregistrement, {this.videoEntiere = false});
+}
+
+/// iOS devient instable quand il ne reste plus rien : on garde un fond de
+/// réservoir plutôt que de remplir le téléphone à ras bord.
+const _margeLibre = 80 * 1024 * 1024;
+
+String tailleLisible(int octets) => octets >= 1073741824
+    ? '${(octets / 1073741824).toStringAsFixed(1)} Go'
+    : '${(octets / 1048576).round()} Mo';
+
+/// Refuse l'écriture si la place manque, avec un message qui dit quoi faire.
+/// Sans ça, l'échec arrive au milieu de la copie, sous forme d'un
+/// « FileSystemException … errno = 28 » illisible.
+Future<void> _verifierPlace(int necessaire) async {
+  final libre = await espaceLibre();
+  if (libre == null || libre >= necessaire + _margeLibre) return;
+  throw ErreurImport(
+    'Espace insuffisant sur le téléphone : il faut ${tailleLisible(necessaire)} '
+    'de libre, il n’en reste que ${tailleLisible(libre)}. '
+    'Supprime d’anciennes khoutbas et réessaie.',
+  );
+}
+
+Future<void> _copier(File source, String destination, int taille) async {
+  await _verifierPlace(taille);
+  try {
+    await source.copy(destination);
+  } on FileSystemException catch (e) {
+    // Une copie interrompue laisse un fichier tronqué : il ne sert à rien et
+    // occupe justement la place qui manquait.
+    try {
+      await File(destination).delete();
+    } catch (_) {}
+    if (e.osError?.errorCode == 28) {
+      throw ErreurImport(
+        'Espace insuffisant sur le téléphone : ce fichier demande '
+        '${tailleLisible(taille)}. Supprime d’anciennes khoutbas et réessaie.',
+      );
+    }
+    throw ErreurImport('Copie impossible : ${e.osError?.message ?? e.message}');
+  }
+}
+
+/// Le sélecteur recopie le fichier choisi dans le dossier temporaire de l'app.
+/// Sur une vidéo, c'est un doublon de plusieurs centaines de mégaoctets : une
+/// fois l'import fait, il n'a plus lieu d'être. Un fichier choisi ailleurs
+/// (iCloud, « Sur mon iPhone ») n'est évidemment jamais touché.
+Future<void> _oublierCopieTemporaire(File source) async {
+  try {
+    if (await Stockage.estTemporaire(source.path)) await source.delete();
+  } catch (_) {}
 }
 
 String _extension(String chemin) {
@@ -114,6 +166,9 @@ Future<ResultatImport> importer(
   var videoEntiere = false;
 
   if (extensionsVideo.contains(ext)) {
+    // La piste extraite fait quelques pour cent de la vidéo ; la marge couvre
+    // les fichiers courts, où le rapport est moins favorable.
+    await _verifierPlace(math.max(50 * 1024 * 1024, taille ~/ 10));
     onProgression?.call(EtapeImport.extraction, 0);
     final extrait = await extraireAudio(
       source.path,
@@ -127,12 +182,12 @@ Future<ResultatImport> importer(
       videoEntiere = true;
       destination = '$dossier/$id.$ext';
       onProgression?.call(EtapeImport.copie, null);
-      await source.copy(destination);
+      await _copier(source, destination, taille);
     }
   } else {
     destination = '$dossier/$id.$ext';
     onProgression?.call(EtapeImport.copie, null);
-    await source.copy(destination);
+    await _copier(source, destination, taille);
   }
 
   // Titre : le nom du fichier s'il est parlant, sinon la date.
@@ -149,6 +204,7 @@ Future<ResultatImport> importer(
     dureeSecondes: await _duree(destination),
   );
   await Stockage.sauver(rec);
+  await _oublierCopieTemporaire(source);
   return ResultatImport(rec, videoEntiere: videoEntiere);
 }
 

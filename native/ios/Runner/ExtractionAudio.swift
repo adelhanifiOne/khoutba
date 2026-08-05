@@ -25,6 +25,10 @@ public class ExtractionAudio: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "espaceLibre" {
+      result(espaceLibre())
+      return
+    }
     guard call.method == "extraire" else {
       result(FlutterMethodNotImplemented)
       return
@@ -37,6 +41,15 @@ public class ExtractionAudio: NSObject, FlutterPlugin {
       return
     }
     extraire(source: source, destination: destination, result: result)
+  }
+
+  /// Octets réellement disponibles pour l'app, ou -1 si le système ne le dit
+  /// pas. `forImportantUsage` compte la place qu'iOS libérerait en purgeant
+  /// ses caches : c'est celle qu'on aura vraiment.
+  private func espaceLibre() -> Int64 {
+    let url = URL(fileURLWithPath: NSHomeDirectory())
+    let valeurs = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+    return valeurs?.volumeAvailableCapacityForImportantUsage ?? -1
   }
 
   private func extraire(source: String, destination: String, result: @escaping FlutterResult) {

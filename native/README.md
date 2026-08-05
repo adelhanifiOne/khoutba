@@ -33,7 +33,17 @@ Si le système n'y arrive pas (codec inhabituel), l'import n'échoue pas : la vi
 
 Une vidéo déjà dans l'app — importée avant cette version, ou dont l'extraction avait échoué — est **rattrapée au moment de « Transcrire & traduire »** : la piste est isolée juste avant l'envoi et la vidéo effacée, ce qui rend au passage ses centaines de Mo au téléphone.
 
-Les fichiers restants volumineux sont envoyés **par tranches de 8 Mo**, avec la progression affichée et quelques tentatives par tranche : charger un tel fichier d'un bloc en mémoire fait tuer l'app par iOS.
+Les fichiers restants volumineux sont envoyés **par tranches de 8 Mo**, avec les mégaoctets transférés affichés et quelques tentatives par tranche : charger un tel fichier d'un bloc en mémoire fait tuer l'app par iOS. Un pourcentage seul serait trompeur — sur 1,2 Go, une tranche ne le fait bouger que de 0,65 %, et l'envoi a l'air figé alors qu'il avance.
+
+### Place sur le téléphone
+
+Une vidéo passe par plusieurs copies avant d'arriver dans l'app, et un import qui échoue en laisse derrière lui. Trois garde-fous :
+
+- **Vérification avant d'écrire** — s'il n'y a pas la place, l'app le dit (« il faut 1,2 Go, il n'en reste que 240 Mo ») au lieu de s'arrêter au milieu sur un `errno = 28` illisible ;
+- **Ménage au lancement** — les fichiers audio que plus aucune fiche ne référence et les copies laissées par les sélecteurs dans le dossier temporaire sont effacés, et l'app annonce ce qu'elle a rendu ;
+- **Copie temporaire supprimée** dès l'import terminé — le sélecteur en fabrique une, de la taille de la vidéo.
+
+Les réglages affichent la place occupée **et** la place restante.
 
 Formats acceptés : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…).
 
@@ -103,8 +113,8 @@ lib/
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                accueil, détail, réglages
-test/khoutba_test.dart   34 tests (modèles Gemini, JSON, statuts, formats,
-                         découpage, extraction audio, affichage)
+test/khoutba_test.dart   37 tests (modèles Gemini, JSON, statuts, formats, découpage,
+                         extraction audio, espace disque, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
@@ -112,7 +122,7 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 34 tests au vert
+- `flutter test` : 37 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

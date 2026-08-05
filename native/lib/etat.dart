@@ -18,6 +18,9 @@ class EtatApp extends ChangeNotifier {
   List<Enregistrement> enregistrements = [];
   bool chargement = true;
 
+  /// Octets rendus au téléphone par le ménage du lancement.
+  int octetsLiberes = 0;
+
   /// Traitement en cours : identifiant de la fiche + avancement.
   String? idEnTraitement;
   AvancementTraitement? avancement;
@@ -26,6 +29,9 @@ class EtatApp extends ChangeNotifier {
     await reglages.charger();
     final recupere = await Enregistreur.recupererSessionInterrompue();
     await rafraichir();
+    // Après la récupération seulement : avant, le fichier rescapé n'est encore
+    // référencé nulle part et se ferait effacer comme un orphelin.
+    octetsLiberes = await Stockage.menageDemarrage();
     chargement = false;
     if (recupere != null) messageRecuperation = recupere.id;
     notifyListeners();

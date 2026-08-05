@@ -81,6 +81,18 @@ Future<File?> extraireAudio(
   return null;
 }
 
+/// Octets libres sur le téléphone, ou `null` si la plateforme ne sait pas le
+/// dire. Sert à refuser un import trop gros *avant* d'écrire : une copie qui
+/// tombe à court de place laisse un fichier tronqué qui, lui, prend la place.
+Future<int?> espaceLibre() async {
+  try {
+    final octets = await canalExtraction.invokeMethod<int>('espaceLibre');
+    return (octets == null || octets < 0) ? null : octets;
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<void> _supprimer(String chemin) async {
   try {
     final f = File(chemin);

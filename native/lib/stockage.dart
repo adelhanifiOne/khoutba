@@ -8,11 +8,27 @@ import 'package:path_provider/path_provider.dart';
 
 import 'modeles.dart';
 
+/// Sur iOS, un même fichier s'écrit `/var/…` ou `/private/var/…` selon qui
+/// donne le chemin. Sans cette normalisation, un fichier bien référencé passe
+/// pour un orphelin — et se fait effacer.
+String cheminNormalise(String chemin) =>
+    chemin.startsWith('/private/') ? chemin.substring(8) : chemin;
+
 class Stockage {
   static Directory? _dossier;
 
   static Future<Directory> dossier() async =>
       _dossier ??= await getApplicationDocumentsDirectory();
+
+  static Future<Directory> dossierTemporaire() => getTemporaryDirectory();
+
+  /// Vrai si le fichier est une copie fabriquée par le sélecteur dans le
+  /// dossier temporaire de l'app : le supprimer ne fait rien perdre à
+  /// l'utilisateur, contrairement à un fichier choisi dans iCloud.
+  static Future<bool> estTemporaire(String chemin) async {
+    final tmp = cheminNormalise((await dossierTemporaire()).path);
+    return cheminNormalise(chemin).startsWith('$tmp/');
+  }
 
   static Future<Directory> dossierAudio() async {
     final d = Directory('${(await dossier()).path}/audio');
@@ -73,6 +89,43 @@ class Stockage {
       if (await f.exists()) await f.delete();
     }
     await _ecrireTout([]);
+  }
+
+  /// Ménage au lancement : efface les fichiers audio que plus aucune fiche ne
+  /// référence (import interrompu, extraction abandonnée, copie tronquée) et
+  /// les doublons laissés par les sélecteurs de fichiers dans le temporaire.
+  /// Un import de vidéo raté laisse sinon des centaines de mégaoctets pris,
+  /// invisibles dans l'app comme dans les réglages de l'iPhone.
+  ///
+  /// À n'appeler qu'au démarrage, après la récupération d'une session
+  /// interrompue : avant, le fichier récupéré passerait pour un orphelin.
+  /// Renvoie le nombre d'octets rendus au téléphone.
+  static Future<int> menageDemarrage() async {
+    var rendus = 0;
+    final connus = {for (final e in await lister()) cheminNormalise(e.cheminAudio)};
+    try {
+      await for (final e in (await dossierAudio()).list()) {
+        if (e is File && !connus.contains(cheminNormalise(e.path))) {
+          rendus += await _effacer(e);
+        }
+      }
+    } catch (_) {}
+    try {
+      await for (final e in (await dossierTemporaire()).list()) {
+        if (e is File) rendus += await _effacer(e);
+      }
+    } catch (_) {}
+    return rendus;
+  }
+
+  static Future<int> _effacer(File f) async {
+    try {
+      final taille = await f.length();
+      await f.delete();
+      return taille;
+    } catch (_) {
+      return 0;
+    }
   }
 
   /// Taille totale occupée par les enregistrements, en octets.

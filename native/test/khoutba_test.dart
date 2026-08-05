@@ -12,6 +12,7 @@ import 'package:khoutba/extraction_audio.dart';
 import 'package:khoutba/fournisseurs.dart';
 import 'package:khoutba/import_media.dart';
 import 'package:khoutba/modeles.dart';
+import 'package:khoutba/stockage.dart';
 import 'package:khoutba/theme.dart';
 import 'package:khoutba/traitement.dart';
 
@@ -349,6 +350,31 @@ void main() {
       expect(estTitreTechnique('Khoutba sur la patience'), isFalse);
       expect(estTitreTechnique('imam Bensalem 12-07'), isFalse);
       expect(estTitreTechnique('Enregistrement mosquée'), isFalse);
+    });
+
+    test('espace libre : une valeur inconnue ne bloque pas l’import', () async {
+      plateforme((_) async => -1); // le système ne sait pas répondre
+      expect(await espaceLibre(), isNull);
+      plateforme((_) => throw MissingPluginException());
+      expect(await espaceLibre(), isNull);
+      plateforme((_) async => 3221225472);
+      expect(await espaceLibre(), 3221225472);
+    });
+
+    test('tailles annoncées en Mo ou en Go', () {
+      expect(tailleLisible(11 * 1048576), '11 Mo');
+      expect(tailleLisible(1221 * 1048576), '1.2 Go');
+      expect(tailleLisible(0), '0 Mo');
+    });
+
+    test('/private/var et /var désignent le même fichier', () {
+      // Le sélecteur iOS renvoie /private/var, path_provider /var. Les
+      // confondre ferait passer un enregistrement bien rangé pour un orphelin,
+      // et le ménage du lancement l'effacerait.
+      expect(cheminNormalise('/private/var/mobile/x.m4a'), '/var/mobile/x.m4a');
+      expect(cheminNormalise('/var/mobile/x.m4a'), '/var/mobile/x.m4a');
+      expect(cheminNormalise('/data/user/0/x.m4a'), '/data/user/0/x.m4a'); // Android
+      expect(cheminNormalise('/privateur/x'), '/privateur/x'); // pas de faux positif
     });
 
     test('le format produit passe aussi chez Whisper', () {
