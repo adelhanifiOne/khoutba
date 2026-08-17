@@ -1,21 +1,23 @@
-// Logo Khoutba, membre de la famille AdhanBox / Adhan Hub : même mot arabe à
-// la même taille, même filet doré, même rythme vertical. Seuls changent la
-// couleur de fond et le mot latin.
+// Logo Khoutba, membre de la famille AdhanBox / Adhan Hub : le mot arabe
+// **أذان** et son filet doré, puis **KHOUTBA** — sur un fond prune.
 //
-// Les proportions ci-dessous ne sont pas inventées : elles ont été relevées au
-// pixel sur l'icône AdhanBox (1024 px), puis ramenées en fraction du cadre.
-// C'est ce qui fait que les trois icônes se ressemblent côte à côte sur
-// l'écran d'accueil — la première version, ajustée « à l'œil », donnait un
-// أذان trop gros, un filet deux fois trop épais et un or trop foncé.
+// Le أذان n'est pas du texte : c'est un dessin, celui d'AdhanBox. Le rendre en
+// Cairo donnait un ن plus étroit et plus profond, et un filet parfaitement
+// droit là où l'original ondule — les trois icônes ne se ressemblaient donc
+// pas vraiment côte à côte. Le motif est maintenant repris tel quel, extrait
+// en transparence par `extraire-motif.js`.
+//
+// Seul le mot latin est composé : « BOX » est bien du Cairo Bold, vérifié en
+// superposant les lettres.
 const fs = require('fs');
 const path = require('path');
-const b64 = (f) => fs.readFileSync(path.join(__dirname, 'polices', f)).toString('base64');
+const b64 = (f) => fs.readFileSync(path.join(__dirname, f)).toString('base64');
 const POLICES = `
   @font-face { font-family:'Cairo'; font-weight:700; font-display:block;
-    src:url(data:font/woff2;base64,${b64('cairo_1.woff2')}) format('woff2');
-    unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF; }
-  @font-face { font-family:'Cairo'; font-weight:700; font-display:block;
-    src:url(data:font/woff2;base64,${b64('cairo_3.woff2')}) format('woff2'); }`;
+    src:url(data:font/woff2;base64,${b64('polices/cairo_3.woff2')}) format('woff2'); }`;
+
+const MOTIF = `data:image/png;base64,${b64('motif-adhan.png')}`;
+const BOITES = JSON.parse(fs.readFileSync(path.join(__dirname, 'motif-adhan.json'), 'utf8'));
 
 // Dégradé en trois arrêts comme AdhanBox : la teinte médiane à 45 % garde la
 // moitié haute lumineuse. À deux arrêts, l'icône s'assombrit trop tôt et
@@ -29,78 +31,68 @@ const FONDS = {
 };
 
 const CREME = '#F9F9F7'; // relevé sur l'icône AdhanBox
-const OR = '#F3D889';    // idem — nettement plus clair que l'or d'origine
 
 /**
- * Géométrie relevée sur l'icône AdhanBox, en fraction du côté du cadre.
- * `haut` désigne le haut de l'encre, pas celui d'une boîte CSS.
+ * Géométrie du mot latin relevée sur « BOX » de l'icône AdhanBox, en fraction
+ * du côté du cadre. `haut` désigne le haut de l'encre, pas d'une boîte CSS.
  */
 const REPERE = {
-  arabe: { largeur: 0.591, haut: 0.171 },
-  filet: { largeur: 0.3545, epaisseur: 0.0132, centre: 0.604 },
-  latin: { hauteur: 0.1113, haut: 0.6885 }, // « BOX » : hauteur de capitale
-  // Un mot latin plus long que « BOX » ne peut pas garder cette taille sans
-  // toucher les bords : on borne sa largeur, la hauteur suit.
+  latin: { hauteur: 0.1113, haut: 0.6885 }, // hauteur de capitale de « BOX »
+  // Un mot latin plus long que « BOX » ne peut pas tenir à cette taille sans
+  // toucher les bords : sa largeur est bornée, sa hauteur suit.
   latinLargeurMax: 0.64,
-  // Sans mot latin (petites tailles), le mot arabe occupe davantage.
+  // Sans mot latin (petites tailles), le mot arabe seul occupe cette part.
   arabeSeul: 0.78,
 };
 
-const INTERLETTRE_LATIN = 0.108; // en em
+// Interlettre relevée sur « BOX » : très aérée. Un mot long ne peut pas garder
+// à la fois cette respiration et la hauteur de capitale de la famille ; on
+// privilégie alors la taille des lettres, plus visible sur l'écran d'accueil.
+const INTERLETTRE_FAMILLE = 0.307;
+const INTERLETTRE_SERREE = 0.12;
 
 /**
- * Métriques de Cairo Bold pour les mots utilisés, en multiples de la taille de
- * police. `mesurerMetriques()` les recalcule à chaque génération : changer un
- * mot ou la police ne casse donc pas le placement. Ces valeurs ne servent que
- * de repli.
+ * Métriques de Cairo Bold pour le mot latin, en multiples de la taille de
+ * police, interlettre exclue. `mesurerMetriques()` les recalcule à chaque
+ * génération ; ces valeurs ne servent que de repli.
  */
-const METRIQUES_DEFAUT = {
-  arabe: { largeur: 2.343, hauteur: 0.955, hautInk: 0.024 },
-  latin: { largeur: 4.857, hauteur: 0.714, hautInk: 0.185 },
-};
+const METRIQUES_DEFAUT = { latin: { largeurNue: 5.12, hauteur: 0.708, hautInk: 0.185, lettres: 7 } };
 
 /**
- * Tailles de police et positions, déduites des repères AdhanBox et des
- * métriques de la police. Isolé de `logo()` pour que la calibration puisse
- * refaire le même calcul sans le dupliquer.
+ * Taille, interlettre et position du mot latin. Isolé pour que la calibration
+ * refasse le même calcul sans le dupliquer.
  */
-function geometrie({ taille: T, sansTexteLatin = false, metriques = METRIQUES_DEFAUT }) {
-  // ---- mot arabe : même largeur d'encre que sur AdhanBox, donc même taille
-  const partArabe = sansTexteLatin ? REPERE.arabeSeul : REPERE.arabe.largeur;
-  const tailleArabe = (partArabe * T) / metriques.arabe.largeur;
-  // Seul, le mot est centré dans le cadre ; sinon il garde sa place d'origine.
-  const hautArabe = sansTexteLatin
-    ? (T - metriques.arabe.hauteur * tailleArabe) / 2 - metriques.arabe.hautInk * tailleArabe
-    : REPERE.arabe.haut * T - metriques.arabe.hautInk * tailleArabe;
+function geometrie({ taille: T, metriques = METRIQUES_DEFAUT }) {
+  const m = metriques.latin;
+  const largeur = (esp, taille) => (m.largeurNue + (m.lettres - 1) * esp) * taille;
 
-  // ---- mot latin : hauteur de capitale de « BOX », sauf s'il déborde
-  const tailleLatin = Math.min(
-    (REPERE.latin.hauteur * T) / metriques.latin.hauteur,
-    (REPERE.latinLargeurMax * T) / metriques.latin.largeur,
-  );
-  const epaisseur = REPERE.filet.epaisseur * T;
+  const tailleFamille = (REPERE.latin.hauteur * T) / m.hauteur;
+  let interlettre = INTERLETTRE_FAMILLE;
+  let tailleLatin = tailleFamille;
+  if (largeur(interlettre, tailleFamille) > REPERE.latinLargeurMax * T) {
+    interlettre = INTERLETTRE_SERREE;
+    tailleLatin = Math.min(
+      tailleFamille,
+      (REPERE.latinLargeurMax * T) / (m.largeurNue + (m.lettres - 1) * interlettre),
+    );
+  }
   return {
-    tailleArabe,
-    hautArabe,
     tailleLatin,
-    hautLatin: REPERE.latin.haut * T - metriques.latin.hautInk * tailleLatin,
-    epaisseur,
-    largeurFilet: REPERE.filet.largeur * T,
-    hautFilet: REPERE.filet.centre * T - epaisseur / 2,
+    interlettre,
+    hautLatin: REPERE.latin.haut * T - m.hautInk * tailleLatin,
   };
 }
 
 /**
  * Le logo complet, en HTML (rendu ensuite en PNG par Chromium).
  * - `sansTexteLatin` : sous 64 px le mot latin devient illisible ; on ne garde
- *   alors que le mot arabe, agrandi et centré.
+ *   alors que le mot arabe, recadré, agrandi et centré.
  * - `echelle` : réduit le contenu sans toucher au cadre (icônes rognées en
  *   cercle sur Android, ou « maskable » du web).
  * - `fond: null` : sans fond, pour l'avant-plan des icônes adaptatives.
  */
 function logo({
   fond = 'bleu nuit',
-  arabe = 'أذان',
   latin = 'KHOUTBA',
   taille = 512,
   sansTexteLatin = false,
@@ -108,25 +100,32 @@ function logo({
   metriques = METRIQUES_DEFAUT,
 } = {}) {
   const T = taille;
-  const g = geometrie({ taille: T, sansTexteLatin, metriques });
   const degrade = fond
     ? `background:linear-gradient(160deg, ${FONDS[fond][0]} 0%, ${FONDS[fond][1]} 45%, ${FONDS[fond][2]} 100%);`
     : '';
+  const motif = `background:url(${MOTIF}) 0 0/100% 100% no-repeat;`;
 
-  const commun = `position:absolute;left:0;right:0;text-align:center;white-space:nowrap;
-                  font-family:Cairo,sans-serif;font-weight:700;color:${CREME};line-height:1;`;
-
-  let corps = `<div style="${commun}top:${g.hautArabe}px;font-size:${g.tailleArabe}px;
-                           direction:rtl;">${arabe}</div>`;
-
-  if (!sansTexteLatin) {
-    corps += `
-      <div style="position:absolute;left:50%;transform:translateX(-50%);
-                  top:${g.hautFilet}px;width:${g.largeurFilet}px;height:${g.epaisseur}px;
-                  border-radius:${g.epaisseur}px;background:${OR};"></div>
-      <div style="${commun}top:${g.hautLatin}px;font-size:${g.tailleLatin}px;
-                  letter-spacing:${INTERLETTRE_LATIN}em;
-                  text-indent:${INTERLETTRE_LATIN}em;">${latin}</div>`;
+  let corps;
+  if (sansTexteLatin) {
+    // Recadrage sur le seul mot arabe : le motif est agrandi, puis découpé à
+    // sa boîte utile par le conteneur.
+    const ar = BOITES.arabe;
+    const cadre = (REPERE.arabeSeul * T) / ar.largeur; // taille du motif entier
+    corps = `
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+                  width:${ar.largeur * cadre}px;height:${ar.hauteur * cadre}px;overflow:hidden;">
+        <div style="position:absolute;left:${-ar.gauche * cadre}px;top:${-ar.haut * cadre}px;
+                    width:${cadre}px;height:${cadre}px;${motif}"></div>
+      </div>`;
+  } else {
+    const g = geometrie({ taille: T, metriques });
+    corps = `
+      <div style="position:absolute;inset:0;${motif}"></div>
+      <div style="position:absolute;left:0;right:0;text-align:center;white-space:nowrap;
+                  font-family:Cairo,sans-serif;font-weight:700;color:${CREME};line-height:1;
+                  top:${g.hautLatin}px;font-size:${g.tailleLatin}px;
+                  letter-spacing:${g.interlettre}em;
+                  text-indent:${g.interlettre}em;">${latin}</div>`;
   }
 
   return `
@@ -144,49 +143,40 @@ const page = (contenu, largeur, hauteur, styleSupp = '') => `<!DOCTYPE html>
 </style></head><body>${contenu}</body></html>`;
 
 /**
- * Mesure, pour une police de 1 px, la boîte d'encre de chaque mot : largeur,
- * hauteur, et distance entre le haut de la boîte CSS et le haut de l'encre.
- * Sans ces trois nombres, poser le texte à un endroit précis relève du
- * tâtonnement — et le réglage saute au premier changement de mot.
+ * Mesure la boîte d'encre du mot latin pour une police de 1 px, interlettre
+ * exclue : largeur, hauteur de capitale, et distance entre le haut de la boîte
+ * CSS et le haut de l'encre. Sans ces trois nombres, poser le texte à un
+ * endroit précis relève du tâtonnement — et le réglage saute au premier
+ * changement de mot.
  */
-async function mesurerMetriques(p, { arabe, latin }) {
+async function mesurerMetriques(p, { latin }) {
   await p.setContent(page('<canvas id="c" width="10" height="10"></canvas>', 100, 100));
   await p.evaluate(() => document.fonts.ready);
-  return p.evaluate(
-    ({ arabe, latin, interlettre }) => {
-      const ctx = document.getElementById('c').getContext('2d');
-      const REF = 200; // taille de mesure : assez grande pour rester précise
-
-      const mesurer = (texte, { rtl = false, espacement = 0 } = {}) => {
-        ctx.font = `700 ${REF}px Cairo`;
-        ctx.direction = rtl ? 'rtl' : 'ltr';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        ctx.letterSpacing = `${espacement}em`;
-        const m = ctx.measureText(texte);
-        // Ligne de base d'une boîte CSS en line-height:1, depuis son haut.
-        const base =
-          (REF - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 +
-          m.fontBoundingBoxAscent;
-        return {
-          largeur: (Math.abs(m.actualBoundingBoxLeft) + m.actualBoundingBoxRight) / REF,
-          hauteur: (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / REF,
-          hautInk: (base - m.actualBoundingBoxAscent) / REF,
-        };
-      };
-
-      return {
-        arabe: mesurer(arabe, { rtl: true }),
-        latin: mesurer(latin, { espacement: interlettre }),
-      };
-    },
-    { arabe, latin, interlettre: INTERLETTRE_LATIN },
-  );
+  return p.evaluate(({ latin }) => {
+    const ctx = document.getElementById('c').getContext('2d');
+    const REF = 200; // taille de mesure : assez grande pour rester précise
+    ctx.font = `700 ${REF}px Cairo`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.letterSpacing = '0em';
+    const m = ctx.measureText(latin);
+    // Ligne de base d'une boîte CSS en line-height:1, depuis son haut.
+    const base =
+      (REF - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2 + m.fontBoundingBoxAscent;
+    return {
+      latin: {
+        largeurNue: (Math.abs(m.actualBoundingBoxLeft) + m.actualBoundingBoxRight) / REF,
+        hauteur: (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / REF,
+        hautInk: (base - m.actualBoundingBoxAscent) / REF,
+        lettres: latin.length,
+      },
+    };
+  }, { latin });
 }
 
 /**
  * Relit une image rendue et renvoie les proportions réellement obtenues, pour
- * les comparer à `REPERE`. C'est la seule façon d'affirmer que le logo est
+ * les comparer aux repères. C'est la seule façon d'affirmer que le logo est
  * conforme à la famille autrement qu'à l'œil.
  */
 async function mesurerRendu(p, pngBase64, taille) {
@@ -230,19 +220,15 @@ async function mesurerRendu(p, pngBase64, taille) {
       const la = filet ? boite(creme, filet.ymax + 1, T) : null;
       return {
         arabe: ar && {
-          largeur: f(ar.xmax - ar.xmin + 1),
-          hauteur: f(ar.ymax - ar.ymin + 1),
-          haut: f(ar.ymin),
+          gauche: f(ar.xmin), haut: f(ar.ymin),
+          largeur: f(ar.xmax - ar.xmin + 1), hauteur: f(ar.ymax - ar.ymin + 1),
         },
         filet: filet && {
-          largeur: f(filet.xmax - filet.xmin + 1),
-          centre: f((filet.ymin + filet.ymax) / 2),
-          epaisseur: f(filet.ymax - filet.ymin + 1),
+          gauche: f(filet.xmin), haut: f(filet.ymin),
+          largeur: f(filet.xmax - filet.xmin + 1), hauteur: f(filet.ymax - filet.ymin + 1),
         },
         latin: la && {
-          largeur: f(la.xmax - la.xmin + 1),
-          hauteur: f(la.ymax - la.ymin + 1),
-          haut: f(la.ymin),
+          largeur: f(la.xmax - la.xmin + 1), hauteur: f(la.ymax - la.ymin + 1), haut: f(la.ymin),
         },
       };
     },
@@ -252,5 +238,5 @@ async function mesurerRendu(p, pngBase64, taille) {
 
 module.exports = {
   logo, page, geometrie, mesurerMetriques, mesurerRendu,
-  FONDS, CREME, OR, REPERE, METRIQUES_DEFAUT,
+  FONDS, CREME, REPERE, BOITES, METRIQUES_DEFAUT,
 };

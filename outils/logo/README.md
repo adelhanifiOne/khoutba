@@ -4,17 +4,32 @@ Le logo de Khoutba appartient à la famille AdhanBox / Adhan Hub : le mot arabe 
 
 Toutes les icônes (iOS, Android, web) sont produites depuis ce seul script : pas de fichier binaire à retoucher à la main.
 
-## Pourquoi ces proportions
+## Le mot arabe est un dessin, pas du texte
 
-Les repères de `logo.js` (`REPERE`) ont été **relevés au pixel sur l'icône AdhanBox** puis ramenés en fraction du cadre : largeur du mot arabe, largeur et épaisseur du filet, hauteur des capitales latines, position verticale de chacun. C'est ce qui fait que les trois icônes se ressemblent côte à côte sur l'écran d'accueil.
+Le أذان d'AdhanBox n'a pas été composé dans une police : c'est un logotype dessiné. Le rejouer en Cairo donnait un ن plus étroit et plus profond, un ذ décalé, et un filet parfaitement droit là où l'original ondule — de loin, les trois icônes de la famille ne se ressemblaient pas.
 
-Rien n'est réglé à l'œil :
+Il est donc **repris tel quel**. `extraire-motif.js` le détache de l'icône AdhanBox en transparence :
 
-1. `mesurerMetriques()` mesure la boîte d'encre de chaque mot dans la police — largeur, hauteur, décalage sous le haut de la ligne. Changer un mot ne casse donc pas le placement.
-2. Une première image est rendue, relue, et l'écart résiduel entre les métriques de la police et le rendu réel est reporté (la hamza au-dessus du أ ne tombe pas là où le canvas l'annonce).
-3. `mesurerRendu()` relit l'image finale et **compare à `REPERE`** : le script affiche l'écart en pixels et sort en erreur au-delà de 4 ‰ du cadre.
+```bash
+node extraire-motif.js /chemin/vers/adhanbox/flutter_app/assets/images/app_logo.png
+```
 
-Seule différence assumée avec AdhanBox : « KHOUTBA » fait sept lettres contre trois à « BOX ». Garder la même taille de capitale le ferait toucher les bords, donc sa largeur est bornée (`latinLargeurMax`) et sa hauteur suit.
+Le fond est vert très sombre (rouge ≈ 12) et le motif crème (249) ou doré (243) : le canal rouge donne directement l'opacité de chaque pixel, bords antialiasés compris. Le résultat (`motif-adhan.png` + les boîtes utiles dans `motif-adhan.json`) est versionné — inutile de relancer le script, sauf si le logo d'AdhanBox change.
+
+Recouvrement obtenu avec l'original : **100 %** du mot arabe.
+
+## Ce qui reste composé
+
+Seul « KHOUTBA » est du texte, en Cairo Bold — vérifié en superposant les lettres de « BOX » d'AdhanBox, qui coïncident. Sa taille et sa position sont calculées, jamais écrites en dur :
+
+1. `mesurerMetriques()` mesure sa boîte d'encre dans la police (largeur hors interlettre, hauteur de capitale, décalage sous le haut de la ligne) ;
+2. une première image est rendue, relue, et l'écart résiduel entre métriques et rendu réel est reporté ;
+3. `mesurerRendu()` relit l'image finale et **compare aux repères** : le script affiche l'écart en pixels et sort en erreur au-delà de 4 ‰ du cadre.
+
+Deux différences assumées avec « BOX », toutes deux dues à sa longueur — sept lettres contre trois :
+
+- **il est plus petit.** À la hauteur de capitale de la famille, le mot ferait 97 % de la largeur du cadre. Sa largeur est donc bornée (`latinLargeurMax`) et sa hauteur suit.
+- **il est moins espacé.** « BOX » est tracké à 0,307 em ; garder cette respiration rétrécirait encore les lettres. Au-delà d'une certaine longueur, l'interlettre se resserre à 0,12 em pour privilégier la taille des lettres, plus visible sur l'écran d'accueil.
 
 ## Régénérer
 
