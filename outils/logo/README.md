@@ -1,8 +1,20 @@
 # Générateur du logo
 
-Le logo de Khoutba est repris de celui d'AdhanBox : le mot arabe **أذان**, un filet doré, puis **KHOUTBA** — sur un fond prune.
+Le logo de Khoutba appartient à la famille AdhanBox / Adhan Hub : le mot arabe **أذان**, un filet doré, puis **KHOUTBA** — sur un fond prune.
 
 Toutes les icônes (iOS, Android, web) sont produites depuis ce seul script : pas de fichier binaire à retoucher à la main.
+
+## Pourquoi ces proportions
+
+Les repères de `logo.js` (`REPERE`) ont été **relevés au pixel sur l'icône AdhanBox** puis ramenés en fraction du cadre : largeur du mot arabe, largeur et épaisseur du filet, hauteur des capitales latines, position verticale de chacun. C'est ce qui fait que les trois icônes se ressemblent côte à côte sur l'écran d'accueil.
+
+Rien n'est réglé à l'œil :
+
+1. `mesurerMetriques()` mesure la boîte d'encre de chaque mot dans la police — largeur, hauteur, décalage sous le haut de la ligne. Changer un mot ne casse donc pas le placement.
+2. Une première image est rendue, relue, et l'écart résiduel entre les métriques de la police et le rendu réel est reporté (la hamza au-dessus du أ ne tombe pas là où le canvas l'annonce).
+3. `mesurerRendu()` relit l'image finale et **compare à `REPERE`** : le script affiche l'écart en pixels et sort en erreur au-delà de 4 ‰ du cadre.
+
+Seule différence assumée avec AdhanBox : « KHOUTBA » fait sept lettres contre trois à « BOX ». Garder la même taille de capitale le ferait toucher les bords, donc sa largeur est bornée (`latinLargeurMax`) et sa hauteur suit.
 
 ## Régénérer
 

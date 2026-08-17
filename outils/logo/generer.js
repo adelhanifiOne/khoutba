@@ -2,7 +2,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const { logo, page, mesurerLargeurs, FONDS } = require('./logo');
+const { logo, page, geometrie, mesurerMetriques, mesurerRendu, FONDS, REPERE } = require('./logo');
 
 const RACINE = path.resolve(__dirname, '../..');
 const NATIF = path.join(RACINE, 'native');
@@ -13,7 +13,9 @@ const ARABE = 'أذان';        // le mot arabe affiché au-dessus du filet dor
 const LATIN = 'KHOUTBA';
 // ———————————————————————————————————————————
 
-const FOND_UNI = FONDS[FOND][1]; // teinte sombre, pour l'icône adaptative Android
+// Fond uni de l'icône adaptative Android : la teinte médiane du dégradé, la
+// plus proche de l'impression d'ensemble une fois l'avant-plan posé dessus.
+const FOND_UNI = FONDS[FOND][1];
 
 async function rendre(p, options, taille, transparent = false) {
   await p.setViewportSize({ width: taille, height: taille });
@@ -37,13 +39,25 @@ const ecrire = (chemin, donnees) => {
   const nav = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const p = await nav.newPage({ deviceScaleFactor: 1 });
 
-  // On mesure les mots réellement utilisés : les tailles de police en
-  // découlent, donc changer de texte ne fait jamais déborder le dessin.
-  const largeurs = await mesurerLargeurs(p, { arabe: ARABE, latin: LATIN });
-  console.log(`largeurs mesurées — ${ARABE} : ${largeurs.arabe.toFixed(2)}×,`
-    + ` ${LATIN} : ${largeurs.latin.toFixed(2)}× la taille de police`);
+  // On mesure les mots réellement utilisés : tailles de police et positions
+  // en découlent, donc changer de texte ne déplace ni ne fait déborder rien.
+  const metriques = await mesurerMetriques(p, { arabe: ARABE, latin: LATIN });
+  console.log(`métriques — ${ARABE} : ${metriques.arabe.largeur.toFixed(3)}× de large,`
+    + ` ${LATIN} : ${metriques.latin.largeur.toFixed(3)}× de large`);
 
-  const base = { fond: FOND, arabe: ARABE, latin: LATIN, largeurs };
+  // Le canvas et le moteur de rendu ne s'accordent pas toujours au pixel près
+  // sur la hauteur de l'encre (la hamza au-dessus du أ, notamment). Plutôt que
+  // de corriger « à l'œil », on rend une fois, on mesure l'écart et on le
+  // reporte : le calcul est linéaire, une passe suffit.
+  const base = { fond: FOND, arabe: ARABE, latin: LATIN, metriques };
+  {
+    const T = 1024;
+    const g = geometrie({ taille: T, metriques });
+    const vu = await mesurerRendu(p, (await rendre(p, base, T)).toString('base64'), T);
+    metriques.arabe.hautInk += ((vu.arabe.haut - REPERE.arabe.haut) * T) / g.tailleArabe;
+    metriques.arabe.hauteur = (vu.arabe.hauteur * T) / g.tailleArabe;
+    metriques.latin.hautInk += ((vu.latin.haut - REPERE.latin.haut) * T) / g.tailleLatin;
+  }
   // Sous 64 px, « KHOUTBA » n'est plus lisible : on ne garde que le mot arabe.
   const pourTaille = (px) => ({ ...base, sansTexteLatin: px < 64 });
 
@@ -92,6 +106,30 @@ const ecrire = (chemin, donnees) => {
   // Logo affiché dans l'en-tête de l'app native
   ecrire(`${NATIF}/assets/logo.png`, await rendre(p, base, 192));
   console.log('web + en-tête : 5 fichiers');
+
+  // ------------------------------------------------- contrôle de conformité
+  // Le logo est censé reprendre la géométrie d'AdhanBox : on relit l'image
+  // produite et on compare, plutôt que de juger à l'œil.
+  const rendu = await mesurerRendu(p, (await rendre(p, base, 1024)).toString('base64'), 1024);
+  const ecarts = [
+    ['largeur du mot arabe', rendu.arabe.largeur, REPERE.arabe.largeur],
+    ['haut du mot arabe', rendu.arabe.haut, REPERE.arabe.haut],
+    ['largeur du filet', rendu.filet.largeur, REPERE.filet.largeur],
+    ['centre du filet', rendu.filet.centre, REPERE.filet.centre],
+    ['épaisseur du filet', rendu.filet.epaisseur, REPERE.filet.epaisseur],
+    ['haut du mot latin', rendu.latin.haut, REPERE.latin.haut],
+  ];
+  console.log('\nconformité à la famille AdhanBox (fractions du cadre) :');
+  let pire = 0;
+  for (const [quoi, obtenu, vise] of ecarts) {
+    const ecart = Math.abs(obtenu - vise);
+    pire = Math.max(pire, ecart);
+    console.log(`  ${ecart < 0.004 ? '✓' : '⚠'} ${quoi.padEnd(22)} ${obtenu.toFixed(4)}`
+      + ` (visé ${vise.toFixed(4)}, écart ${(ecart * 1024).toFixed(1)} px sur 1024)`);
+  }
+  console.log(`  hauteur du mot latin : ${rendu.latin.hauteur.toFixed(4)}`
+    + ` (« BOX » : ${REPERE.latin.hauteur.toFixed(4)} — plus petit car le mot est plus long)`);
+  if (pire >= 0.004) process.exitCode = 1;
 
   await nav.close();
 })();
