@@ -15,6 +15,7 @@ import 'package:khoutba/modeles.dart';
 import 'package:khoutba/stockage.dart';
 import 'package:khoutba/theme.dart';
 import 'package:khoutba/traitement.dart';
+import 'package:khoutba/version.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -375,6 +376,12 @@ void main() {
       expect(cheminNormalise('/var/mobile/x.m4a'), '/var/mobile/x.m4a');
       expect(cheminNormalise('/data/user/0/x.m4a'), '/data/user/0/x.m4a'); // Android
       expect(cheminNormalise('/privateur/x'), '/privateur/x'); // pas de faux positif
+    });
+
+    test('la version installée est lisible dans les réglages', () {
+      // Sans repère visible, « la mise à jour est-elle arrivée ? » ne se
+      // tranche qu'en réinstallant à l'aveugle.
+      expect(versionKhoutba, matches(r'^\d{4}\.\d{2}\.\d{2}-\d+$'));
     });
 
     test('le format produit passe aussi chez Whisper', () {

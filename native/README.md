@@ -68,7 +68,7 @@ Branche l'iPhone en USB, puis **double-clique `installer_iphone.command`** (dans
 
 Le script **récupère d'abord la dernière version du code**, puis vérifie Xcode, installe Flutter et CocoaPods si besoin, détecte ton iPhone, compile et installe l'app. Quand une étape demande une action de ta part (créer ton certificat la première fois, activer le mode développeur sur l'iPhone), il te dit exactement quoi faire.
 
-Il affiche le commit qu'il compile (`Version compilée : 21b3750 — …`) : c'est la façon de vérifier que tu installes bien ce que tu crois. Et quand la mise à jour touche au logo, il nettoie le cache de compilation — sinon Xcode réutilise l'ancien catalogue d'icônes et l'iPhone garde l'ancienne icône.
+Il affiche le commit qu'il compile (`Version compilée : 21b3750 — …`), et l'app affiche la sienne dans ⚙️ **Réglages → Version installée** : les deux doivent concorder après une réinstallation. Sans ce repère, deux versions successives sont indiscernables et on réinstalle à l'aveugle. Et quand la mise à jour touche au logo, il nettoie le cache de compilation — sinon Xcode réutilise l'ancien catalogue d'icônes et l'iPhone garde l'ancienne icône.
 
 > Si macOS refuse de lancer le fichier : clic droit → *Ouvrir* → *Ouvrir* (une seule fois).
 > En ligne de commande : `cd native && ./installer_iphone.command`
@@ -111,11 +111,12 @@ lib/
   stockage.dart          index JSON + fichiers audio
   reglages.dart          préférences + clés API (stockage sécurisé)
   import_media.dart      import d'un audio/vidéo depuis Fichiers ou la galerie
+  version.dart           version affichée dans les réglages (repère de mise à jour)
   extraction_audio.dart  isole la piste sonore d'une vidéo (code natif iOS/Android)
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                accueil, détail, réglages
-test/khoutba_test.dart   37 tests (modèles Gemini, JSON, statuts, formats, découpage,
+test/khoutba_test.dart   38 tests (modèles Gemini, JSON, statuts, formats, découpage,
                          extraction audio, espace disque, affichage)
 ```
 
@@ -124,7 +125,7 @@ Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 37 tests au vert
+- `flutter test` : 38 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

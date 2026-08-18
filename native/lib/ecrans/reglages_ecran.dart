@@ -7,6 +7,7 @@ import '../extraction_audio.dart';
 import '../fournisseurs.dart';
 import '../import_media.dart' show tailleLisible;
 import '../stockage.dart';
+import '../version.dart';
 
 class EcranReglages extends StatefulWidget {
   const EcranReglages({super.key});
@@ -194,6 +195,13 @@ class _EcranReglagesState extends State<EcranReglages> {
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Stockage utilisé', style: TextStyle(fontSize: 14.5)),
                 trailing: Text(_stockage, style: TextStyle(color: theme.hintColor)),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Version installée', style: TextStyle(fontSize: 14.5)),
+                subtitle: const Text('à comparer après une réinstallation',
+                    style: TextStyle(fontSize: 12.5)),
+                trailing: Text(versionKhoutba, style: TextStyle(color: theme.hintColor)),
               ),
               const SizedBox(height: 4),
               OutlinedButton(
