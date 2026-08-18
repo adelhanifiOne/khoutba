@@ -102,9 +102,10 @@ titre "3. Préparation du projet"
 if git rev-parse --git-dir >/dev/null 2>&1; then
   avant=$(git rev-parse HEAD)
   branche=$(git rev-parse --abbrev-ref HEAD)
-  if [ -n "$(git status --porcelain)" ]; then
-    info "Modifications locales présentes — mise à jour du code ignorée."
-  elif git pull --ff-only origin "$branche" >/dev/null 2>&1; then
+  # --autostash : Xcode écrit ton certificat de signature dans project.pbxproj,
+  # que le dépôt modifie aussi. Sans ça, git refuse la mise à jour et on
+  # repart compiler l'ancienne version sans forcément le remarquer.
+  if git pull --ff-only --autostash origin "$branche" >/dev/null 2>&1; then
     apres=$(git rev-parse HEAD)
     if [ "$avant" != "$apres" ]; then
       ok "Code mis à jour ($(git rev-list --count "$avant".."$apres") nouveau(x) commit(s))"
@@ -118,7 +119,16 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
       ok "Code déjà à jour"
     fi
   else
-    info "Mise à jour impossible (pas de réseau ?) — compilation du code local."
+    info "Mise à jour impossible — compilation du code local."
+    # Réseau coupé, conflit de fusion… : montrer ce que git a répondu,
+    # plutôt que de laisser croire à une compilation à jour.
+    git pull --ff-only --autostash origin "$branche" 2>&1 | tail -4
+  fi
+  # Si le rejeu automatique a échoué, git laisse le stash en place plutôt que
+  # de perdre le travail : le dire, sinon les réglages ont l'air envolés.
+  if git stash list 2>/dev/null | grep -q autostash; then
+    info "Tes réglages Xcode n'ont pas pu être remis automatiquement."
+    info "Ils sont conservés : « git stash pop » les rejoue quand tu voudras."
   fi
   ok "Version compilée : $(git log -1 --format='%h — %s' | cut -c1-62)"
 fi
