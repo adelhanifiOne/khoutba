@@ -66,7 +66,9 @@ flutter pub get
 
 Branche l'iPhone en USB, puis **double-clique `installer_iphone.command`** (dans le Finder, dossier `native`).
 
-Le script vérifie Xcode, installe Flutter et CocoaPods si besoin, détecte ton iPhone, compile et installe l'app. Quand une étape demande une action de ta part (créer ton certificat la première fois, activer le mode développeur sur l'iPhone), il te dit exactement quoi faire.
+Le script **récupère d'abord la dernière version du code**, puis vérifie Xcode, installe Flutter et CocoaPods si besoin, détecte ton iPhone, compile et installe l'app. Quand une étape demande une action de ta part (créer ton certificat la première fois, activer le mode développeur sur l'iPhone), il te dit exactement quoi faire.
+
+Il affiche le commit qu'il compile (`Version compilée : 21b3750 — …`) : c'est la façon de vérifier que tu installes bien ce que tu crois. Et quand la mise à jour touche au logo, il nettoie le cache de compilation — sinon Xcode réutilise l'ancien catalogue d'icônes et l'iPhone garde l'ancienne icône.
 
 > Si macOS refuse de lancer le fichier : clic droit → *Ouvrir* → *Ouvrir* (une seule fois).
 > En ligne de commande : `cd native && ./installer_iphone.command`

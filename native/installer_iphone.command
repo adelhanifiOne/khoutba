@@ -97,6 +97,32 @@ fi
 
 titre "3. Préparation du projet"
 
+# Sans ça, on recompile ce qui a été téléchargé la dernière fois : on croit
+# réinstaller une nouvelle version alors qu'on réinstalle exactement la même.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  avant=$(git rev-parse HEAD)
+  branche=$(git rev-parse --abbrev-ref HEAD)
+  if [ -n "$(git status --porcelain)" ]; then
+    info "Modifications locales présentes — mise à jour du code ignorée."
+  elif git pull --ff-only origin "$branche" >/dev/null 2>&1; then
+    apres=$(git rev-parse HEAD)
+    if [ "$avant" != "$apres" ]; then
+      ok "Code mis à jour ($(git rev-list --count "$avant".."$apres") nouveau(x) commit(s))"
+      # Les icônes finissent dans un catalogue que Xcode garde en cache : sans
+      # ménage, l'ancienne icône reste sur l'iPhone après réinstallation.
+      if git diff --name-only "$avant" "$apres" | grep -qE 'AppIcon|mipmap|assets/logo'; then
+        info "Le logo a changé — nettoyage du cache de compilation…"
+        flutter clean >/dev/null 2>&1
+      fi
+    else
+      ok "Code déjà à jour"
+    fi
+  else
+    info "Mise à jour impossible (pas de réseau ?) — compilation du code local."
+  fi
+  ok "Version compilée : $(git log -1 --format='%h — %s' | cut -c1-62)"
+fi
+
 sortie_pub=$(flutter pub get 2>&1)
 if [ $? -ne 0 ]; then
   # Cause la plus fréquente : le Flutter local est plus ancien que ce que
