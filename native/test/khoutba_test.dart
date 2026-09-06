@@ -235,6 +235,84 @@ void main() {
 
   });
 
+  group('Pannes passagères des services', () {
+    // Google répond « Spikes in demand are usually temporary. Please try again
+    // later. » : c'est à l'app d'attendre, pas à l'utilisateur de rappuyer.
+    const attentesTest = [Duration.zero, Duration.zero, Duration.zero];
+
+    test('un service saturé est reconnu comme passager', () {
+      final e = erreurHttp('Gemini', 503,
+          '{"error":{"message":"This model is currently experiencing high demand."}}');
+      expect(e.passager, isTrue);
+      expect(e.message, contains('saturé'));
+      expect(e.message, isNot(contains('high demand'))); // pas d’anglais brut
+    });
+
+    test('les autres pannes serveur aussi', () {
+      for (final statut in [500, 502, 504]) {
+        expect(erreurHttp('Gemini', statut, '{}').passager, isTrue, reason: '$statut');
+      }
+    });
+
+    test('un quota épuisé n’est pas passager : insister n’y changerait rien', () {
+      final e = erreurHttp('Gemini', 429,
+          '{"error":{"message":"Quota exceeded for quota metric per day"}}');
+      expect(e.passager, isFalse);
+      expect(e.message, contains('quota'));
+    });
+
+    test('une rafale de requêtes, si', () {
+      expect(erreurHttp('Gemini', 429, '{"error":{"message":"Too many requests"}}').passager, isTrue);
+    });
+
+    test('une clé invalide ou un contenu refusé ne se rejouent pas', () {
+      for (final statut in [400, 401, 403]) {
+        expect(erreurHttp('Gemini', statut, '{}').passager, isFalse, reason: '$statut');
+      }
+    });
+
+    test('un modèle retiré reste signalé comme tel', () {
+      final e = erreurHttp('Gemini', 404, '{"error":{"message":"models/x is not found"}}');
+      expect(e.modeleIndisponible, isTrue);
+      expect(e.passager, isFalse); // il faut changer de modèle, pas attendre
+    });
+
+    test('la reprise réussit dès que le service revient', () async {
+      var essais = 0;
+      final texte = await avecReprises(() async {
+        essais++;
+        if (essais < 3) throw ErreurIA('saturé', passager: true);
+        return 'transcription';
+      }, attentes: attentesTest);
+      expect(texte, 'transcription');
+      expect(essais, 3);
+    });
+
+    test('la reprise s’arrête et rend la dernière erreur', () async {
+      var essais = 0;
+      await expectLater(
+        avecReprises(() async {
+          essais++;
+          throw ErreurIA('toujours saturé', passager: true);
+        }, attentes: attentesTest),
+        throwsA(isA<ErreurIA>()),
+      );
+      expect(essais, attentesTest.length + 1); // un essai, puis une reprise par attente
+    });
+
+    test('une vraie erreur n’est jamais rejouée', () async {
+      var essais = 0;
+      await expectLater(
+        avecReprises(() async {
+          essais++;
+          throw ErreurIA('clé invalide');
+        }, attentes: attentesTest),
+        throwsA(isA<ErreurIA>()),
+      );
+      expect(essais, 1); // inutile de harceler le service avec une clé fausse
+    });
+  });
+
   group('Extraction de la piste audio', () {
     final messager = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     late Directory dossier;

@@ -16,7 +16,12 @@ import 'package:http/http.dart' as http;
 class ErreurIA implements Exception {
   final String message;
   final bool modeleIndisponible;
-  ErreurIA(this.message, {this.modeleIndisponible = false});
+
+  /// Panne passagère du service (saturation, 5xx, débit) : contrairement à une
+  /// clé invalide ou un quota épuisé, réessayer a de bonnes chances d'aboutir.
+  final bool passager;
+
+  ErreurIA(this.message, {this.modeleIndisponible = false, this.passager = false});
   @override
   String toString() => message;
 }
@@ -45,7 +50,31 @@ const _delaiLong = Duration(minutes: 15); // transcription d'une khoutba entièr
 // pas lente : au-delà, l'envoi complet ne finirait de toute façon jamais.
 const _delaiMorceau = Duration(minutes: 4);
 
-ErreurIA _erreurHttp(String nom, int statut, String corps) {
+/// Attentes successives quand le service répond « reviens plus tard ». Google
+/// le dit lui-même — « Spikes in demand are usually temporary » — donc c'est à
+/// l'app de patienter, pas à l'utilisateur de rappuyer sur le bouton.
+const _attentesReprise = [Duration(seconds: 3), Duration(seconds: 8), Duration(seconds: 20)];
+
+/// Statuts qui ne disent rien de la requête, seulement de l'état du service.
+const _statutsPassagers = {429, 500, 502, 503, 504};
+
+/// Rejoue [action] tant que le service se dit temporairement indisponible.
+/// [attentes] n'est là que pour les tests, qui ne vont pas patienter 31 s.
+Future<T> avecReprises<T>(
+  Future<T> Function() action, {
+  List<Duration> attentes = _attentesReprise,
+}) async {
+  for (var tentative = 0; ; tentative++) {
+    try {
+      return await action();
+    } on ErreurIA catch (e) {
+      if (!e.passager || tentative >= attentes.length) rethrow;
+      await Future.delayed(attentes[tentative]);
+    }
+  }
+}
+
+ErreurIA erreurHttp(String nom, int statut, String corps) {
   var detail = corps;
   try {
     final j = jsonDecode(corps);
@@ -58,6 +87,23 @@ ErreurIA _erreurHttp(String nom, int statut, String corps) {
       (statut == 400 &&
           RegExp('not supported|unsupported|no longer available', caseSensitive: false)
               .hasMatch(detail));
+
+  if (_statutsPassagers.contains(statut)) {
+    // Un quota épuisé porte le même code 429 qu'une rafale de requêtes, mais
+    // insister n'y changera rien : le distinguer évite d'attendre pour rien.
+    final quota = RegExp('quota|per day|daily limit|billing', caseSensitive: false).hasMatch(detail);
+    if (quota) {
+      return ErreurIA('$nom : quota de la clé atteint. Attends la remise à zéro '
+          'ou utilise une autre clé.');
+    }
+    return ErreurIA(
+      statut == 429
+          ? '$nom : trop de demandes en peu de temps. Réessaie dans une minute.'
+          : '$nom : le service est saturé en ce moment (erreur $statut). '
+              'Ça vient de chez eux, pas de toi — réessaie dans quelques minutes.',
+      passager: true,
+    );
+  }
   return ErreurIA('$nom : erreur $statut — $detail', modeleIndisponible: indispo);
 }
 
@@ -248,7 +294,7 @@ class ClientGemini {
     } catch (e) {
       _erreurReseau('Gemini', e);
     }
-    if (rep.statusCode != 200) throw _erreurHttp('Gemini', rep.statusCode, rep.body);
+    if (rep.statusCode != 200) throw erreurHttp('Gemini', rep.statusCode, rep.body);
     final data = jsonDecode(utf8.decode(rep.bodyBytes));
     final liste = <ModeleGemini>[];
     for (final m in (data['models'] as List? ?? const [])) {
@@ -285,6 +331,15 @@ class ClientGemini {
     Map<String, dynamic> generationConfig,
     String? systemInstruction,
     Duration delai,
+  ) =>
+      avecReprises(() => _appelUnique(modele, contents, generationConfig, systemInstruction, delai));
+
+  Future<String> _appelUnique(
+    String modele,
+    List<Map<String, dynamic>> contents,
+    Map<String, dynamic> generationConfig,
+    String? systemInstruction,
+    Duration delai,
   ) async {
     final corps = <String, dynamic>{'contents': contents, 'generationConfig': generationConfig};
     if (systemInstruction != null) {
@@ -309,9 +364,9 @@ class ClientGemini {
       // on retente une fois sans, plutôt que d'échouer.
       if (rep.statusCode == 400 && generationConfig.containsKey('thinkingConfig')) {
         final reste = Map<String, dynamic>.from(generationConfig)..remove('thinkingConfig');
-        return _appel(modele, contents, reste, systemInstruction, delai);
+        return _appelUnique(modele, contents, reste, systemInstruction, delai);
       }
-      throw _erreurHttp('Gemini', rep.statusCode, utf8.decode(rep.bodyBytes));
+      throw erreurHttp('Gemini', rep.statusCode, utf8.decode(rep.bodyBytes));
     }
 
     final data = jsonDecode(utf8.decode(rep.bodyBytes));
@@ -342,8 +397,13 @@ class ClientGemini {
         return texte;
       } on ErreurIA catch (e) {
         derniere = e;
-        if (!e.modeleIndisponible) rethrow; // vraie erreur (clé, quota, contenu)
-        _candidats = null; // ce modèle a disparu : on re-listera
+        if (e.modeleIndisponible) {
+          _candidats = null; // ce modèle a disparu : on re-listera
+        } else if (!e.passager) {
+          rethrow; // vraie erreur (clé, quota, contenu)
+        }
+        // Saturation : le modèle existe toujours, mais un autre est peut-être
+        // moins demandé — on tente le suivant plutôt que de rendre la main.
       }
     }
     throw derniere ?? ErreurIA('Gemini : aucun modèle disponible avec cette clé.');
@@ -368,7 +428,7 @@ class ClientGemini {
         if (rep.statusCode == 200) return rep;
         // Une erreur 4xx ne s'arrangera pas en insistant.
         if (rep.statusCode < 500) {
-          throw _erreurHttp('Gemini (envoi du fichier)', rep.statusCode, rep.body);
+          throw erreurHttp('Gemini (envoi du fichier)', rep.statusCode, rep.body);
         }
         derniereErreur = ErreurIA('erreur ${rep.statusCode}');
       } on ErreurIA {
@@ -406,7 +466,7 @@ class ClientGemini {
       _erreurReseau('Gemini (ouverture de l’envoi)', e);
     }
     if (rep.statusCode != 200) {
-      throw _erreurHttp('Gemini (ouverture de l’envoi)', rep.statusCode, rep.body);
+      throw erreurHttp('Gemini (ouverture de l’envoi)', rep.statusCode, rep.body);
     }
     final urlUpload = rep.headers['x-goog-upload-url'];
     if (urlUpload == null) throw ErreurIA('Gemini : URL de téléversement absente.');
@@ -439,7 +499,7 @@ class ClientGemini {
       final r = await http
           .get(Uri.parse('$_geminiBase/v1beta/${info['name']}?key=$cle'))
           .timeout(_delaiCourt);
-      if (r.statusCode != 200) throw _erreurHttp('Gemini', r.statusCode, r.body);
+      if (r.statusCode != 200) throw erreurHttp('Gemini', r.statusCode, r.body);
       info = Map<String, dynamic>.from(jsonDecode(utf8.decode(r.bodyBytes)));
     }
     if (info['state'] != 'ACTIVE') {
@@ -538,24 +598,27 @@ class ClientOpenAI {
         'il accepte des fichiers bien plus longs.',
       );
     }
-    final requete = http.MultipartRequest('POST', Uri.parse('$_openaiBase/v1/audio/transcriptions'))
-      ..headers['authorization'] = 'Bearer $cle'
-      ..fields['model'] = ModelesParDefaut.openaiTranscription
-      ..fields['language'] = 'ar'
-      ..fields['response_format'] = 'text'
-      ..fields['temperature'] = '0'
-      ..files.add(await http.MultipartFile.fromPath('file', audio.path));
+    return avecReprises(() async {
+      // Une requête multipart ne se rejoue pas : on la refabrique à chaque essai.
+      final requete = http.MultipartRequest('POST', Uri.parse('$_openaiBase/v1/audio/transcriptions'))
+        ..headers['authorization'] = 'Bearer $cle'
+        ..fields['model'] = ModelesParDefaut.openaiTranscription
+        ..fields['language'] = 'ar'
+        ..fields['response_format'] = 'text'
+        ..fields['temperature'] = '0'
+        ..files.add(await http.MultipartFile.fromPath('file', audio.path));
 
-    http.Response rep;
-    try {
-      rep = await http.Response.fromStream(await requete.send().timeout(_delaiLong));
-    } catch (e) {
-      _erreurReseau('OpenAI (Whisper)', e);
-    }
-    if (rep.statusCode != 200) {
-      throw _erreurHttp('OpenAI (Whisper)', rep.statusCode, utf8.decode(rep.bodyBytes));
-    }
-    return utf8.decode(rep.bodyBytes).trim();
+      http.Response rep;
+      try {
+        rep = await http.Response.fromStream(await requete.send().timeout(_delaiLong));
+      } catch (e) {
+        _erreurReseau('OpenAI (Whisper)', e);
+      }
+      if (rep.statusCode != 200) {
+        throw erreurHttp('OpenAI (Whisper)', rep.statusCode, utf8.decode(rep.bodyBytes));
+      }
+      return utf8.decode(rep.bodyBytes).trim();
+    });
   }
 
   Future<String> generer({
@@ -580,14 +643,12 @@ class ClientOpenAI {
       };
     }
 
-    final requete = http.Request('POST', Uri.parse('$_openaiBase/v1/chat/completions'))
-      ..headers['authorization'] = 'Bearer $cle'
-      ..headers['content-type'] = 'application/json'
-      ..body = jsonEncode(corps);
-
     return _lireFluxSSE(
       nom: 'OpenAI',
-      requete: requete,
+      requete: () => http.Request('POST', Uri.parse('$_openaiBase/v1/chat/completions'))
+        ..headers['authorization'] = 'Bearer $cle'
+        ..headers['content-type'] = 'application/json'
+        ..body = jsonEncode(corps),
       extraire: (obj) => obj['choices']?[0]?['delta']?['content']?.toString(),
       onDelta: onDelta,
     );
@@ -628,16 +689,14 @@ class ClientClaude {
       };
     }
 
-    final requete = http.Request('POST', Uri.parse('$_anthropicBase/v1/messages'))
-      ..headers['x-api-key'] = cle
-      ..headers['anthropic-version'] = '2023-06-01'
-      ..headers['content-type'] = 'application/json'
-      ..body = jsonEncode(corps);
-
     var stopReason = '';
     final texte = await _lireFluxSSE(
       nom: 'Claude',
-      requete: requete,
+      requete: () => http.Request('POST', Uri.parse('$_anthropicBase/v1/messages'))
+        ..headers['x-api-key'] = cle
+        ..headers['anthropic-version'] = '2023-06-01'
+        ..headers['content-type'] = 'application/json'
+        ..body = jsonEncode(corps),
       extraire: (obj) {
         if (obj['type'] == 'content_block_delta' && obj['delta']?['type'] == 'text_delta') {
           return obj['delta']['text']?.toString();
@@ -661,7 +720,18 @@ class ClientClaude {
 }
 
 /// Lit un flux SSE (`data: {...}`) et assemble le texte au fil de l'eau.
+/// [requete] est un fabricant, pas une requête : un flux ne se rejoue pas,
+/// il faut donc pouvoir la reconstruire à chaque tentative.
 Future<String> _lireFluxSSE({
+  required String nom,
+  required http.Request Function() requete,
+  required String? Function(Map<String, dynamic>) extraire,
+  void Function(String)? onDelta,
+}) =>
+    avecReprises(() => _lireFluxSSEUneFois(
+        nom: nom, requete: requete(), extraire: extraire, onDelta: onDelta));
+
+Future<String> _lireFluxSSEUneFois({
   required String nom,
   required http.Request requete,
   required String? Function(Map<String, dynamic>) extraire,
@@ -677,7 +747,7 @@ Future<String> _lireFluxSSE({
     }
     if (rep.statusCode != 200) {
       final corps = await rep.stream.bytesToString();
-      throw _erreurHttp(nom, rep.statusCode, corps);
+      throw erreurHttp(nom, rep.statusCode, corps);
     }
 
     final tampon = StringBuffer();

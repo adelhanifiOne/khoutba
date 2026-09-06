@@ -116,16 +116,24 @@ lib/
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                accueil, détail, réglages
-test/khoutba_test.dart   38 tests (modèles Gemini, JSON, statuts, formats, découpage,
-                         extraction audio, espace disque, affichage)
+test/khoutba_test.dart   47 tests (modèles Gemini, JSON, statuts, formats, découpage,
+                         extraction audio, espace disque, reprises, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
 
+## Quand le service d'IA flanche
+
+Google répond parfois « This model is currently experiencing high demand. Please try again later. » (erreur 503). C'est une saturation passagère : l'app **attend et réessaie elle-même** — 3 s, 8 s, 20 s — puis passe au modèle suivant de la liste, souvent moins demandé. L'utilisateur n'a rien à faire.
+
+Sont traités de la même façon : 500, 502, 504, et 429 quand c'est une rafale de requêtes. En revanche un **quota épuisé** porte aussi le code 429 et n'est pas rejoué : insister n'y changerait rien, l'app dit d'attendre la remise à zéro ou de changer de clé. Une clé invalide ou un contenu refusé échouent immédiatement, sans harceler le service.
+
+Les messages sont réécrits en français : « le service est saturé en ce moment — ça vient de chez eux, pas de toi », au lieu de recopier l'anglais de l'API.
+
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 38 tests au vert
+- `flutter test` : 47 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.

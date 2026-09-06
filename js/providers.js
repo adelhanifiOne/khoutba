@@ -26,15 +26,56 @@ export const CHOIX_MODELES_CLAUDE = [
 
 // ---------------------------------------------------------------- utilitaires
 
+// Statuts qui ne disent rien de la requête, seulement de l'état du service.
+const STATUTS_PASSAGERS = new Set([429, 500, 502, 503, 504]);
+
+// Attentes successives quand le service répond « reviens plus tard ». Google le
+// dit lui-même — « Spikes in demand are usually temporary » — donc c'est à
+// l'app de patienter, pas à l'utilisateur de rappuyer sur le bouton.
+const ATTENTES_REPRISE = [3000, 8000, 20000];
+
 function erreurHttp(nom, statut, corps) {
   let detail = corps;
   try {
     const j = JSON.parse(corps);
     detail = j.error?.message || j.error?.type || corps;
   } catch { }
-  const e = new Error(`${nom} : erreur ${statut} — ${String(detail).slice(0, 300)}`);
+  detail = String(detail);
+
+  if (STATUTS_PASSAGERS.has(statut)) {
+    // Un quota épuisé porte le même code 429 qu'une rafale de requêtes, mais
+    // insister n'y changera rien : le distinguer évite d'attendre pour rien.
+    if (/quota|per day|daily limit|billing/i.test(detail)) {
+      const e = new Error(`${nom} : quota de la clé atteint. Attends la remise à zéro `
+        + `ou utilise une autre clé.`);
+      e.statut = statut;
+      return e;
+    }
+    const e = new Error(statut === 429
+      ? `${nom} : trop de demandes en peu de temps. Réessaie dans une minute.`
+      : `${nom} : le service est saturé en ce moment (erreur ${statut}). `
+        + `Ça vient de chez eux, pas de toi — réessaie dans quelques minutes.`);
+    e.statut = statut;
+    e.passager = true;
+    return e;
+  }
+
+  const e = new Error(`${nom} : erreur ${statut} — ${detail.slice(0, 300)}`);
   e.statut = statut;
   return e;
+}
+
+// Rejoue `action` tant que le service se dit temporairement indisponible.
+// `attentes` n'est là que pour les tests, qui ne vont pas patienter 31 s.
+export async function avecReprises(action, attentes = ATTENTES_REPRISE) {
+  for (let tentative = 0; ; tentative++) {
+    try {
+      return await action();
+    } catch (e) {
+      if (!e?.passager || tentative >= attentes.length) throw e;
+      await new Promise(r => setTimeout(r, attentes[tentative]));
+    }
+  }
 }
 
 // La cause réelle est conservée : sans elle, un délai dépassé, un refus CORS
@@ -176,7 +217,10 @@ function modeleIndisponible(statut, corps) {
   return statut === 400 && /not supported|unsupported|no longer available/i.test(corps || '');
 }
 
-async function geminiAppel(cle, modele, contents, generationConfig, systemInstruction) {
+const geminiAppel = (cle, modele, contents, generationConfig, systemInstruction) =>
+  avecReprises(() => geminiAppelUnique(cle, modele, contents, generationConfig, systemInstruction));
+
+async function geminiAppelUnique(cle, modele, contents, generationConfig, systemInstruction) {
   const corps = { contents, generationConfig };
   if (systemInstruction) corps.systemInstruction = { parts: [{ text: systemInstruction }] };
   const url = `${GEMINI_BASE}/v1beta/models/${modele}:generateContent?key=${encodeURIComponent(cle)}`;
@@ -196,7 +240,7 @@ async function geminiAppel(cle, modele, contents, generationConfig, systemInstru
     // modèles : on retente une fois sans, plutôt que d'échouer.
     if (rep.status === 400 && generationConfig?.thinkingConfig) {
       const { thinkingConfig, ...reste } = generationConfig;
-      return geminiAppel(cle, modele, contents, reste, systemInstruction);
+      return geminiAppelUnique(cle, modele, contents, reste, systemInstruction);
     }
     const e = erreurHttp('Gemini', rep.status, texteErreur);
     e.modeleIndisponible = modeleIndisponible(rep.status, texteErreur);
@@ -224,8 +268,13 @@ async function geminiGenerer(cle, contents, generationConfig, systemInstruction,
       return texte;
     } catch (e) {
       derniereErreur = e;
-      if (!e.modeleIndisponible) throw e;   // vraie erreur (quota, clé, contenu)
-      _geminiCandidats = null;              // ce modèle a disparu : on re-listera
+      if (e.modeleIndisponible) {
+        _geminiCandidats = null;            // ce modèle a disparu : on re-listera
+      } else if (!e.passager) {
+        throw e;                            // vraie erreur (quota, clé, contenu)
+      }
+      // Saturation : le modèle existe toujours, mais un autre est peut-être
+      // moins demandé — on tente le suivant plutôt que de rendre la main.
     }
   }
   throw derniereErreur || new Error('Gemini : aucun modèle disponible avec cette clé.');
