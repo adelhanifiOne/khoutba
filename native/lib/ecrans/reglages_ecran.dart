@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../cle_api.dart';
 import '../etat.dart';
 import '../extraction_audio.dart';
 import '../fournisseurs.dart';
@@ -59,35 +60,54 @@ class _EcranReglagesState extends State<EcranReglages> {
     final valeur = await showDialog<String>(
       context: context,
       builder: (c) => StatefulBuilder(
-        builder: (c, majEtat) => AlertDialog(
-          title: Text(libelle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(aide, style: TextStyle(fontSize: 12.5, color: Theme.of(c).hintColor)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ctrl,
-                obscureText: !visible,
-                autocorrect: false,
-                enableSuggestions: false,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: 'Colle ta clé ici',
-                  suffixIcon: IconButton(
-                    icon: Icon(visible ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => majEtat(() => visible = !visible),
+        builder: (c, majEtat) {
+          final saisie = ctrl.text.trim();
+          final douteuse = saisie.isNotEmpty && !clePlausible(nom, saisie);
+          return AlertDialog(
+            title: Text(libelle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(aide, style: TextStyle(fontSize: 12.5, color: Theme.of(c).hintColor)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: ctrl,
+                  obscureText: !visible,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  onChanged: (_) => majEtat(() {}),
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    hintText: 'Colle ta clé ici',
+                    // Une clé mal collée se voit ici, plutôt que sous forme
+                    // d'erreur 400 au premier traitement.
+                    errorText: douteuse ? 'Cette clé semble incomplète.' : null,
+                    suffixIcon: IconButton(
+                      icon: Icon(visible ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => majEtat(() => visible = !visible),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => ouvrirPageCle(nom),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Obtenir une clé', style: TextStyle(fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(c), child: const Text('Annuler')),
+              TextButton(
+                  onPressed: () => Navigator.pop(c, ctrl.text),
+                  child: const Text('Enregistrer')),
             ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Annuler')),
-            TextButton(onPressed: () => Navigator.pop(c, ctrl.text), child: const Text('Enregistrer')),
-          ],
-        ),
+          );
+        },
       ),
     );
     if (valeur == null) return;

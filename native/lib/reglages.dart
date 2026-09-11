@@ -16,6 +16,7 @@ class Reglages extends ChangeNotifier {
   String modeleGemini = '';  // '' = choix automatique du meilleur disponible
   String langue = 'fr';      // fr | en
   bool demo = false;
+  bool accueilVu = false;    // l'écran de bienvenue ne se montre qu'une fois
 
   final Map<String, String> cles = {'gemini': '', 'openai': '', 'anthropic': ''};
 
@@ -27,6 +28,7 @@ class Reglages extends ChangeNotifier {
     modeleGemini = prefs.getString('modeleGemini') ?? '';
     langue = prefs.getString('langue') ?? 'fr';
     demo = prefs.getBool('demo') ?? false;
+    accueilVu = prefs.getBool('accueilVu') ?? false;
     for (final nom in cles.keys) {
       try {
         cles[nom] = await _stockageSecurise.read(key: 'cle_$nom') ?? '';
@@ -45,6 +47,7 @@ class Reglages extends ChangeNotifier {
     await prefs.setString('modeleGemini', modeleGemini);
     await prefs.setString('langue', langue);
     await prefs.setBool('demo', demo);
+    await prefs.setBool('accueilVu', accueilVu);
     notifyListeners();
   }
 

@@ -15,6 +15,7 @@ import '../extraction_audio.dart';
 import '../import_media.dart';
 import '../modeles.dart';
 import '../theme.dart';
+import 'bienvenue.dart';
 import 'detail.dart';
 import 'reglages_ecran.dart';
 
@@ -52,6 +53,11 @@ class _EcranAccueilState extends State<EcranAccueil> {
   /// moment-là `initialiser()` n'a pas encore fini et il n'y a rien à dire.
   void _signalerDemarrage() {
     if (!mounted) return;
+    if (!etat.reglages.accueilVu) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const EcranBienvenue()))
+          .then((_) => mounted ? setState(() {}) : null);
+      return;
+    }
     if (etat.messageRecuperation != null) {
       etat.messageRecuperation = null;
       _message('Un enregistrement interrompu a été récupéré ✓');

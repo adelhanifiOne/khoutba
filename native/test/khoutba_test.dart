@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:khoutba/cle_api.dart';
 import 'package:khoutba/ecrans/accueil.dart';
+import 'package:khoutba/ecrans/bienvenue.dart';
 import 'package:khoutba/enregistreur.dart';
 import 'package:khoutba/extraction_audio.dart';
 import 'package:khoutba/fournisseurs.dart';
@@ -233,6 +235,88 @@ void main() {
       }
     });
 
+  });
+
+  group('Première clé API', () {
+    // C'est l'étape où l'on perd la plupart des nouveaux utilisateurs : une
+    // clé tronquée acceptée ici ressort en « erreur 400 » au premier
+    // traitement, et l'app passe pour cassée.
+    test('une clé Gemini complète est acceptée', () {
+      expect(clePlausible('gemini', 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC'), isTrue);
+      expect(clePlausible('gemini', '  AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC  '), isTrue);
+    });
+
+    test('les collages ratés sont refusés', () {
+      for (final mauvais in [
+        '',                                   // champ vide
+        'AIza',                               // copie interrompue
+        'AIzaSyB1cD3fGh5JkL7',                // moitié de clé
+        'prenom.nom@example.com',             // mauvais champ
+        'https://aistudio.google.com/apikey', // l'adresse, pas la clé
+        'AIzaSyB1cD3fGh5JkL7 mNp9QrS2tUvW4x', // espace au milieu
+      ]) {
+        expect(clePlausible('gemini', mauvais), isFalse, reason: '« $mauvais »');
+      }
+    });
+
+    test('chaque service a sa forme de clé', () {
+      const gemini = 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC';
+      const openai = 'sk-proj-1234567890abcdefghijklmnopqrstuvwxyz012345';
+      const claude = 'sk-ant-api03-1234567890abcdefghijklmnopqrstuvwxyz';
+      expect(clePlausible('openai', openai), isTrue);
+      expect(clePlausible('anthropic', claude), isTrue);
+      // Une clé collée dans le mauvais champ est signalée tout de suite.
+      expect(clePlausible('openai', gemini), isFalse);
+      expect(clePlausible('gemini', openai), isFalse);
+      expect(clePlausible('anthropic', openai), isFalse);
+    });
+
+    test('chaque service pointe vers sa page de création', () {
+      expect(urlCle('gemini'), contains('aistudio.google.com'));
+      expect(urlCle('openai'), contains('platform.openai.com'));
+      expect(urlCle('anthropic'), contains('anthropic.com'));
+      expect(urlCle('inconnu'), urlCleGemini); // repli : le service par défaut
+    });
+  });
+
+  group('Écran de bienvenue', () {
+    // Il s'affiche au tout premier lancement, y compris sur un petit écran :
+    // un débordement de quelques pixels y serait la première impression.
+    testWidgets('propose l’exemple avant la configuration', (tester) async {
+      tester.view.physicalSize = const Size(750, 1334); // iPhone SE
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(theme: themeClair(), home: const EcranBienvenue()));
+      expect(find.text('Voir un exemple'), findsOneWidget);
+      expect(find.text('Commencer pour de vrai'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('la clé n’est acceptée que si elle en a la forme', (tester) async {
+      tester.view.physicalSize = const Size(750, 1334);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(theme: themeClair(), home: const EcranBienvenue()));
+      // Sur un petit écran le bouton est sous la ligne de flottaison.
+      await tester.ensureVisible(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+
+      final terminer = find.widgetWithText(FilledButton, 'Terminer');
+      expect(tester.widget<FilledButton>(terminer).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), 'AIza');
+      await tester.pump();
+      expect(tester.widget<FilledButton>(terminer).onPressed, isNull, reason: 'clé tronquée');
+
+      await tester.enterText(find.byType(TextField), 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC');
+      await tester.pump();
+      expect(tester.widget<FilledButton>(terminer).onPressed, isNotNull);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('Pannes passagères des services', () {

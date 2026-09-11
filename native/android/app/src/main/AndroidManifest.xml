@@ -64,5 +64,11 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Sans ça, Android 11+ ne laisse pas l'app voir de navigateur, et le
+             bouton « Ouvrir la page Google » ne fait rien. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>
