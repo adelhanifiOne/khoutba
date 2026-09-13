@@ -15,6 +15,16 @@ import '../theme.dart';
 import 'accueil.dart';
 import 'reglages_ecran.dart';
 
+/// Position après un saut de [secondes], bornée au fichier. Reculer avant le
+/// début ou avancer au-delà de la fin doit rester sans effet fâcheux : c'est
+/// précisément ce qu'on fait sans y penser en suivant un passage à l'oreille.
+Duration positionApres(Duration position, int secondes, Duration totale) {
+  var cible = position + Duration(seconds: secondes);
+  if (cible < Duration.zero) cible = Duration.zero;
+  if (totale > Duration.zero && cible > totale) cible = totale;
+  return cible;
+}
+
 class EcranDetail extends StatefulWidget {
   final String idEnregistrement;
   const EcranDetail({super.key, required this.idEnregistrement});
@@ -345,8 +355,30 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
     return 'Transcrire & traduire';
   }
 
+  Future<void> _deplacer(int secondes) => _lecteur.seek(
+        positionApres(_lecteur.position, secondes, _lecteur.duration ?? Duration.zero),
+      );
+
+  Future<void> _changerVitesse() async {
+    const vitesses = [1.0, 0.75, 1.25, 1.5];
+    final i = vitesses.indexWhere((v) => (v - _lecteur.speed).abs() < 0.01);
+    final suivante = vitesses[(i + 1) % vitesses.length];
+    await _lecteur.setSpeed(suivante);
+    if (mounted) setState(() {});
+  }
+
+  /// Lecteur de réécoute : on suit le prêche à l'oreille en lisant la
+  /// traduction juste en dessous. D'où les commandes qui comptent ici — reculer
+  /// de quinze secondes sur un passage mal saisi, et ralentir : l'arabe d'une
+  /// khoutba va vite pour qui l'apprend encore.
   Widget _lecteurAudio() {
     if (!_audioPret) return const SizedBox(height: 8);
+    final theme = Theme.of(context);
+    const chiffresAlignes = TextStyle(
+      fontSize: 12,
+      fontFeatures: [FontFeature.tabularFigures()],
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: StreamBuilder<Duration>(
@@ -355,38 +387,74 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
           final position = snap.data ?? Duration.zero;
           final totale = _lecteur.duration ?? Duration.zero;
           final max = totale.inMilliseconds.toDouble();
-          return Row(
+          return Column(
             children: [
-              StreamBuilder<PlayerState>(
-                stream: _lecteur.playerStateStream,
-                builder: (context, s) {
-                  final enLecture = s.data?.playing ?? false;
-                  return IconButton(
-                    iconSize: 34,
-                    icon: Icon(enLecture ? Icons.pause_circle : Icons.play_circle),
-                    onPressed: () async {
-                      if (enLecture) {
-                        await _lecteur.pause();
-                      } else {
-                        if (_lecteur.processingState == ProcessingState.completed) {
-                          await _lecteur.seek(Duration.zero);
-                        }
-                        await _lecteur.play();
-                      }
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.replay_10),
+                    iconSize: 26,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Reculer de 10 s',
+                    onPressed: () => _deplacer(-10),
+                  ),
+                  StreamBuilder<PlayerState>(
+                    stream: _lecteur.playerStateStream,
+                    builder: (context, s) {
+                      final enLecture = s.data?.playing ?? false;
+                      return IconButton(
+                        iconSize: 38,
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(enLecture ? Icons.pause_circle : Icons.play_circle),
+                        color: theme.colorScheme.primary,
+                        tooltip: enLecture ? 'Pause' : 'Écouter',
+                        onPressed: () async {
+                          if (enLecture) {
+                            await _lecteur.pause();
+                          } else {
+                            if (_lecteur.processingState == ProcessingState.completed) {
+                              await _lecteur.seek(Duration.zero);
+                            }
+                            await _lecteur.play();
+                          }
+                        },
+                      );
                     },
-                  );
-                },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.forward_30),
+                    iconSize: 26,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Avancer de 30 s',
+                    onPressed: () => _deplacer(30),
+                  ),
+                  const Spacer(),
+                  // Ralentir aide plus que tout à suivre l'arabe en lisant.
+                  TextButton(
+                    onPressed: _changerVitesse,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: accentTexte(context),
+                    ),
+                    child: Text('${_lecteur.speed.toString().replaceAll('.0', '')}×',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Slider(
-                  value: position.inMilliseconds.clamp(0, max.toInt()).toDouble(),
-                  max: max <= 0 ? 1 : max,
-                  onChanged: (v) => _lecteur.seek(Duration(milliseconds: v.round())),
-                ),
+              Row(
+                children: [
+                  Text(formaterDuree(position.inSeconds), style: chiffresAlignes),
+                  Expanded(
+                    child: Slider(
+                      value: position.inMilliseconds.clamp(0, max.toInt()).toDouble(),
+                      max: max <= 0 ? 1 : max,
+                      onChanged: (v) => _lecteur.seek(Duration(milliseconds: v.round())),
+                    ),
+                  ),
+                  Text(formaterDuree(totale.inSeconds),
+                      style: chiffresAlignes.copyWith(color: theme.hintColor)),
+                ],
               ),
-              Text(formaterDuree(position.inSeconds),
-                  style: const TextStyle(fontSize: 12, fontFeatures: [FontFeature.tabularFigures()])),
-              const SizedBox(width: 8),
             ],
           );
         },

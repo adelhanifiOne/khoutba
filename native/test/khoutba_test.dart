@@ -290,6 +290,37 @@ void main() {
     });
   });
 
+  group('Réécoute', () {
+    // On suit le prêche à l'oreille en lisant la traduction : reculer sur un
+    // passage mal saisi est le geste le plus fréquent, y compris au tout début
+    // et à la toute fin de l'enregistrement.
+    const totale = Duration(minutes: 25, seconds: 24);
+
+    test('reculer et avancer d’un pas', () {
+      expect(positionApres(const Duration(minutes: 3), -10, totale),
+          const Duration(minutes: 2, seconds: 50));
+      expect(positionApres(const Duration(minutes: 3), 30, totale),
+          const Duration(minutes: 3, seconds: 30));
+    });
+
+    test('jamais avant le début', () {
+      expect(positionApres(const Duration(seconds: 4), -10, totale), Duration.zero);
+      expect(positionApres(Duration.zero, -10, totale), Duration.zero);
+    });
+
+    test('jamais après la fin', () {
+      expect(positionApres(const Duration(minutes: 25, seconds: 20), 30, totale), totale);
+      expect(positionApres(totale, 30, totale), totale);
+    });
+
+    test('durée inconnue : on avance quand même', () {
+      // Un fichier récupéré peut ne pas annoncer sa durée ; borner à zéro
+      // interdirait alors toute avance.
+      expect(positionApres(const Duration(minutes: 1), 30, Duration.zero),
+          const Duration(minutes: 1, seconds: 30));
+    });
+  });
+
   group('Versets et hadiths cités', () {
     const verset = Citation(
       type: 'coran',

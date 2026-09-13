@@ -47,6 +47,20 @@ Les réglages affichent la place occupée **et** la place restante.
 
 Formats acceptés : audio (m4a, mp3, wav, ogg, flac, amr…) et vidéo (mp4, mov, 3gp, mkv…).
 
+## Réécouter en lisant la traduction
+
+Le lecteur reste en haut de la fiche pendant que les onglets défilent : on suit le prêche à
+l'oreille, la traduction sous les yeux. Trois commandes servent vraiment à ça :
+
+- **− 10 s** — le geste le plus fréquent, pour reprendre un passage mal saisi ;
+- **+ 30 s** — passer une invocation ou une redite ;
+- **la vitesse** (1× → 0,75× → 1,25× → 1,5×) — ralentir aide plus que tout à raccrocher l'arabe
+  au texte français quand on l'apprend encore.
+
+Reculer avant le début ou avancer au-delà de la fin ne produit rien de fâcheux : la position est
+bornée, y compris quand la durée du fichier est inconnue — cas d'un enregistrement récupéré après
+un arrêt brutal, où borner à zéro interdirait toute avance.
+
 ## Comment l'enregistrement survit à l'écran éteint
 
 - **Android** : un *service au premier plan* de type `microphone` (`flutter_foreground_task`) garde le processus vivant, avec une notification permanente pendant l'enregistrement. Déclaré dans `android/app/src/main/AndroidManifest.xml` — ce type est obligatoire depuis Android 14.
@@ -127,9 +141,9 @@ lib/
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                bienvenue, accueil, détail, réglages
-test/khoutba_test.dart   56 tests (modèles Gemini, JSON, statuts, formats, découpage,
+test/khoutba_test.dart   63 tests (modèles Gemini, JSON, statuts, formats, découpage,
                          extraction audio, espace disque, reprises, clés,
-                         bienvenue, exemple, affichage)
+                         bienvenue, exemple, réécoute, citations, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
@@ -145,7 +159,7 @@ Les messages sont réécrits en français : « le service est saturé en ce mome
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 56 tests au vert
+- `flutter test` : 63 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.
