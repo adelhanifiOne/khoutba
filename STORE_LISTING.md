@@ -145,6 +145,7 @@ Enregistrez le prêche du vendredi, relisez-le en français chez vous.
 | Email support | adel.hanifi@yahoo.fr |
 | Politique de confidentialité | https://adelhanifione.github.io/khoutba/privacy.html |
 | Prix | Gratuit, sans achat intégré |
+| Appareils | **iPhone uniquement** — pas de captures iPad à fournir |
 
 ### Apple — questionnaire « App Privacy »
 
@@ -198,6 +199,20 @@ affiche clairement que l'enregistrement est en cours.
 ```
 
 ---
+
+## 📱 iPhone seulement, volontairement
+
+Flutter déclare par défaut une app universelle, iPhone **et** iPad. Apple réclame alors les
+captures 13 pouces, et surtout teste l'app sur iPad. Or Khoutba est une app de poche : on lance
+l'enregistrement et on range le téléphone. La mise en page n'a jamais été pensée ni essayée sur
+un grand écran — un testeur Apple y verrait une interface de téléphone étirée, ce qui se rejette
+(règle 2.1) et ferait de toute façon une mauvaise première impression.
+
+`TARGET_DEVICE_FAMILY = 1` dans les trois configurations du projet iOS. Conséquence : l'app
+n'apparaît plus sur l'App Store d'un iPad, et aucune capture iPad n'est demandée.
+
+Pour revenir en arrière un jour, il faudra rétablir ce réglage **et** revoir les écrans pour le
+grand format — l'un sans l'autre ne vaut rien.
 
 ## 📸 Captures d'écran
 
