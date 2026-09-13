@@ -21,9 +21,14 @@ titre()  { echo; echo "${gras}$1${fin}"; }
 pause_finale() { echo; echo "Appuie sur Entrée pour fermer."; read -r _; }
 echec() { echo; erreur "$1"; [ $# -gt 1 ] && { echo; echo "$2"; }; pause_finale; exit 1; }
 
-# Modèle visé : c'est lui qui fixe la taille des images. Le premier disponible
-# gagne — Apple accepte la 6,9" pour toutes les tailles supérieures.
-MODELES=("iPhone 16 Pro Max" "iPhone 15 Pro Max" "iPhone 16 Pro" "iPhone 15 Pro")
+# Les noms de modèles changent à chaque version d'iOS — « iPhone 16 Pro Max »
+# hier, « iPhone 17 Pro Max » aujourd'hui. Les coder en dur condamne le script
+# à tomber en panne au prochain Xcode : on cherche donc par motif, du plus
+# grand écran au plus petit.
+#
+# Le modèle exact importe peu : generer.js redimensionne de toute façon vers
+# les formats des stores. Il ne joue que sur ce qui tient à l'écran.
+PREFERENCES=("Pro Max" "Plus" "Pro" "iPhone")
 
 ECRANS=(
   "1|Accueil — le gros bouton micro et la liste"
@@ -59,19 +64,38 @@ ok "Flutter présent"
 
 titre "2. Simulateur"
 
-appareil=""
-for m in "${MODELES[@]}"; do
-  if xcrun simctl list devices available | grep -q "^    $m ("; then
-    appareil="$m"; break
-  fi
-done
-[ -n "$appareil" ] || echec "Aucun iPhone Pro Max dans tes simulateurs." \
-"Ouvre Xcode → Settings → Components → iOS Simulator, installe un runtime iOS,
-puis Window → Devices and Simulators pour ajouter un « iPhone 16 Pro Max »."
-ok "Appareil : $appareil"
+# « UDID|Nom » pour chaque iPhone déjà présent.
+iphones=$(xcrun simctl list devices available \
+  | sed -n 's/^[[:space:]]*\(iPhone [^(]*[^ (]\) (\([0-9A-F-]\{36\}\)).*/\2|\1/p')
 
-udid=$(xcrun simctl list devices available | grep "^    $appareil (" | head -1 \
-  | sed -n 's/.*(\([0-9A-F-]*\)).*/\1/p')
+choisi=""
+for motif in "${PREFERENCES[@]}"; do
+  choisi=$(echo "$iphones" | grep -i "$motif" | tail -1)
+  [ -n "$choisi" ] && break
+done
+
+# Rien d'installé : le runtime peut être là sans qu'aucun appareil n'ait été
+# créé — cas courant sur un Mac neuf. On en fabrique un.
+if [ -z "$choisi" ]; then
+  info "Aucun iPhone dans tes simulateurs, création…"
+  type=$(xcrun simctl list devicetypes \
+    | sed -n 's/^\(iPhone .*\) (\(com\.apple\.CoreSimulator\.SimDeviceType\.[^)]*\))$/\2|\1/p' \
+    | grep -i "Pro Max" | tail -1 | cut -d'|' -f1)
+  runtime=$(xcrun simctl list runtimes \
+    | sed -n 's/^iOS .* - \(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]*\)$/\1/p' | tail -1)
+  [ -n "$type" ] && [ -n "$runtime" ] || echec \
+    "Aucun runtime iOS installé." \
+"Xcode → Settings → Components → installe « iOS Simulator », puis relance.
+Si le runtime est déjà là, ouvre Window → Devices and Simulators et ajoute
+n'importe quel iPhone : le script saura le trouver."
+  nouveau=$(xcrun simctl create "Khoutba captures" "$type" "$runtime") || echec \
+    "Création du simulateur impossible."
+  choisi="$nouveau|Khoutba captures"
+fi
+
+udid="${choisi%%|*}"
+appareil="${choisi#*|}"
+ok "Appareil : $appareil"
 xcrun simctl boot "$udid" 2>/dev/null
 open -a Simulator
 info "Démarrage du simulateur…"
@@ -119,8 +143,9 @@ for e in "${ECRANS[@]}"; do
   read -r -p "     Entrée pour capturer (s = sauter) : " reponse
   [ "$reponse" = "s" ] && { info "sautée"; continue; }
   if xcrun simctl io "$udid" screenshot "brutes/$n.png" 2>/dev/null; then
-    ok "brutes/$n.png ($(sips -g pixelWidth -g pixelHeight "brutes/$n.png" 2>/dev/null \
-      | awk '/pixel/{printf "%s ", $2}'))"
+    dims=$(sips -g pixelWidth -g pixelHeight "brutes/$n.png" 2>/dev/null \
+      | awk '/pixelWidth/{l=$2} /pixelHeight/{h=$2} END{print l"×"h}')
+    ok "brutes/$n.png ($dims — redimensionnée à l'habillage)"
   else
     erreur "capture impossible"
   fi
