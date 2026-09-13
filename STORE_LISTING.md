@@ -208,8 +208,14 @@ l'enregistrement et on range le téléphone. La mise en page n'a jamais été pe
 un grand écran — un testeur Apple y verrait une interface de téléphone étirée, ce qui se rejette
 (règle 2.1) et ferait de toute façon une mauvaise première impression.
 
-`TARGET_DEVICE_FAMILY = 1` dans les trois configurations du projet iOS. Conséquence : l'app
+`TARGETED_DEVICE_FAMILY = 1` dans les trois configurations du projet iOS. Conséquence : l'app
 n'apparaît plus sur l'App Store d'un iPad, et aucune capture iPad n'est demandée.
+
+> **Le nom du réglage est `TARGETED_DEVICE_FAMILY`, avec le « ED ».** `TARGET_DEVICE_FAMILY`
+> n'existe pas : Xcode accepte la ligne sans broncher, ne l'applique jamais, et le binaire sort
+> en `UIDeviceFamily = [1, 2]` comme si de rien n'était. Aucun avertissement nulle part. C'est
+> exactement ce qui est arrivé, et ça a coûté un numéro de build et une heure de recherche du
+> mauvais côté. Le seul contrôle qui vaille est celui de l'archive, décrit plus bas.
 
 Pour revenir en arrière un jour, il faudra rétablir ce réglage **et** revoir les écrans pour le
 grand format — l'un sans l'autre ne vaut rien.
