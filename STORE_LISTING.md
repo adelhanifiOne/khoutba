@@ -201,20 +201,26 @@ affiche clairement que l'enregistrement est en cours.
 
 ## 📸 Captures d'écran
 
-Six captures, mêmes écrans pour iPhone 6,7" et 6,5" (obligatoires) et iPad si vous publiez dessus.
-L'ordre compte : les deux premières sont les seules que la plupart des gens verront.
+Prenez-les sur le téléphone, **mode démo activé** (⚙️ Réglages) : le contenu affiché est fictif,
+donc aucune vraie khoutba ni aucune clé ne se retrouve sur une image publique. Six captures,
+dans cet ordre — sur l'App Store, la plupart des gens ne voient que les deux premières.
 
-| # | Écran | Accroche à incruster |
-|---|-------|----------------------|
-| 1 | Accueil, bouton micro | « Enregistrez le prêche, rangez votre téléphone » |
-| 2 | Onglet Résumé rempli | « Retrouvez-le en français, chez vous » |
-| 3 | Versets et hadiths cités | « Les versets cités, avec leur référence » |
-| 4 | Onglet Traduction | « La traduction intégrale, à votre rythme » |
-| 5 | Onglet النص العربي | « Et le texte arabe complet » |
-| 6 | Écran de bienvenue | « Rien ne quitte votre téléphone » |
+| # | Écran | Accroche incrustée |
+|---|-------|--------------------|
+| 1 | Accueil, bouton micro | Enregistre le prêche, range ton téléphone |
+| 2 | Onglet Résumé rempli | Retrouve-le en français, chez toi |
+| 3 | Versets et hadiths cités | Les versets cités, avec leur référence |
+| 4 | Onglet Traduction | La traduction intégrale, à ton rythme |
+| 5 | Onglet النص العربي | Et le texte arabe complet |
+| 6 | Écran de bienvenue | Tout reste sur ton téléphone |
 
-Le **mode démo** produit exactement le contenu qu'il faut pour ces captures, sans exposer une
-vraie khoutba ni une vraie clé : activez-le, lancez un traitement, photographiez.
+L'habillage (fond prune, accroche, dimensions exactes des trois formats) est fait par
+`outils/captures/` — voir son README. Rangez les captures dans `outils/captures/brutes/`
+sous les noms `1.png` à `6.png`, puis :
+
+```bash
+cd outils/captures && node generer.js
+```
 
 ---
 
