@@ -155,6 +155,9 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
     final theme = Theme.of(context);
     final saisie = _cle.text.trim();
     final valide = clePlausible('gemini', saisie);
+    // Avertissement seulement : Google est déjà passé de « AIza » à « AQ. »,
+    // et refuser sur le préfixe bloquait des clés parfaitement valides.
+    final inattendue = valide && cleInattendue('gemini', saisie);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,16 +216,30 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
                     tooltip: 'Coller',
                     onPressed: _coller,
                   )
-                : Icon(valide ? Icons.check_circle : Icons.error_outline,
-                    color: valide ? accentTexte(context) : theme.colorScheme.error),
+                : Icon(
+                    !valide
+                        ? Icons.error_outline
+                        : inattendue
+                            ? Icons.help_outline
+                            : Icons.check_circle,
+                    color: valide ? accentTexte(context) : theme.colorScheme.error,
+                  ),
           ),
         ),
         if (saisie.isNotEmpty && !valide) ...[
           const SizedBox(height: 8),
           Text(
-            'Une clé Gemini commence par « AIza » et fait une quarantaine de '
-            'caractères. Vérifie que la copie est complète.',
+            'Ça ne ressemble pas à une clé. Sur la page Google, utilise le '
+            'bouton Copier à côté de la clé — celle affichée à l’écran est '
+            'abrégée et ne fonctionnera pas.',
             style: TextStyle(fontSize: 12.5, color: theme.colorScheme.error, height: 1.5),
+          ),
+        ] else if (inattendue) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Cette clé n’a pas la forme habituelle d’une clé Google, mais tu '
+            'peux continuer : elle sera essayée telle quelle.',
+            style: TextStyle(fontSize: 12.5, color: theme.hintColor, height: 1.5),
           ),
         ],
         const Spacer(),

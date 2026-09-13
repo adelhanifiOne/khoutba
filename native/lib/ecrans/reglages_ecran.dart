@@ -62,7 +62,8 @@ class _EcranReglagesState extends State<EcranReglages> {
       builder: (c) => StatefulBuilder(
         builder: (c, majEtat) {
           final saisie = ctrl.text.trim();
-          final douteuse = saisie.isNotEmpty && !clePlausible(nom, saisie);
+          final ratee = saisie.isNotEmpty && !clePlausible(nom, saisie);
+          final inattendue = saisie.isNotEmpty && !ratee && cleInattendue(nom, saisie);
           return AlertDialog(
             title: Text(libelle),
             content: Column(
@@ -81,8 +82,11 @@ class _EcranReglagesState extends State<EcranReglages> {
                     border: const OutlineInputBorder(),
                     hintText: 'Colle ta clé ici',
                     // Une clé mal collée se voit ici, plutôt que sous forme
-                    // d'erreur 400 au premier traitement.
-                    errorText: douteuse ? 'Cette clé semble incomplète.' : null,
+                    // d'erreur 400 au premier traitement. L'enregistrement
+                    // reste possible : les formats changent, pas nous.
+                    errorText: ratee ? 'Utilise le bouton Copier de la page.' : null,
+                    helperText: inattendue ? 'Forme inhabituelle — à essayer quand même.' : null,
+                    helperMaxLines: 2,
                     suffixIcon: IconButton(
                       icon: Icon(visible ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => majEtat(() => visible = !visible),

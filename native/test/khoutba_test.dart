@@ -241,34 +241,43 @@ void main() {
     // C'est l'étape où l'on perd la plupart des nouveaux utilisateurs : une
     // clé tronquée acceptée ici ressort en « erreur 400 » au premier
     // traitement, et l'app passe pour cassée.
-    test('une clé Gemini complète est acceptée', () {
+    test('les deux formats Google sont acceptés', () {
+      // Google a changé de préfixe en cours de route : « AIza » historique,
+      // « AQ. » depuis 2026. Une vérification calée sur l'ancien refusait des
+      // clés valides — d'où la règle : on ne bloque jamais sur un préfixe.
       expect(clePlausible('gemini', 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC'), isTrue);
-      expect(clePlausible('gemini', '  AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC  '), isTrue);
+      expect(clePlausible('gemini', 'AQ.EXEMPLE0FICTIF0PourLesTests0NePasUtiliser00'), isTrue);
+      expect(clePlausible('gemini', '  AQ.EXEMPLE0FICTIF0PourLesTests0NePasUtiliser00  '), isTrue);
     });
 
-    test('les collages ratés sont refusés', () {
+    test('un format encore inconnu passe quand même', () {
+      // Le jour où Google change encore, l'app ne doit pas être le blocage.
+      expect(clePlausible('gemini', 'XYZ9-format-de-demain-1234567890abcdef'), isTrue);
+    });
+
+    test('seuls les collages manifestement ratés sont refusés', () {
       for (final mauvais in [
         '',                                   // champ vide
         'AIza',                               // copie interrompue
-        'AIzaSyB1cD3fGh5JkL7',                // moitié de clé
         'prenom.nom@example.com',             // mauvais champ
         'https://aistudio.google.com/apikey', // l'adresse, pas la clé
         'AIzaSyB1cD3fGh5JkL7 mNp9QrS2tUvW4x', // espace au milieu
+        'AQ.EXEMPLE0FICTIF0PourLesTests0NePasUtiliser00…', // recopiée de l'écran, abrégée
+        'AQ.EXEMPLE0FICTIF0PourLesTests0NePasUtiliser00...',
       ]) {
         expect(clePlausible('gemini', mauvais), isFalse, reason: '« $mauvais »');
       }
     });
 
-    test('chaque service a sa forme de clé', () {
-      const gemini = 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC';
+    test('une clé d’un autre service est signalée, pas refusée', () {
       const openai = 'sk-proj-1234567890abcdefghijklmnopqrstuvwxyz012345';
-      const claude = 'sk-ant-api03-1234567890abcdefghijklmnopqrstuvwxyz';
-      expect(clePlausible('openai', openai), isTrue);
-      expect(clePlausible('anthropic', claude), isTrue);
-      // Une clé collée dans le mauvais champ est signalée tout de suite.
-      expect(clePlausible('openai', gemini), isFalse);
-      expect(clePlausible('gemini', openai), isFalse);
-      expect(clePlausible('anthropic', openai), isFalse);
+      expect(clePlausible('gemini', openai), isTrue, reason: 'jamais bloquant');
+      expect(cleInattendue('gemini', openai), isTrue, reason: 'mais signalé');
+      // Les formats connus, eux, ne déclenchent aucun avertissement.
+      expect(cleInattendue('gemini', 'AQ.EXEMPLE0FICTIF0PourLesTests0NePasUtiliser00'), isFalse);
+      expect(cleInattendue('gemini', 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC'), isFalse);
+      expect(cleInattendue('openai', openai), isFalse);
+      expect(cleInattendue('anthropic', 'sk-ant-api03-1234567890abcdefghijklmnop'), isFalse);
     });
 
     test('chaque service pointe vers sa page de création', () {
@@ -312,7 +321,9 @@ void main() {
       await tester.pump();
       expect(tester.widget<FilledButton>(terminer).onPressed, isNull, reason: 'clé tronquée');
 
-      await tester.enterText(find.byType(TextField), 'AIzaSyB1cD3fGh5JkL7mNp9QrS2tUvW4xYz6AbC');
+      // Format actuel des clés Google : doit passer sans discussion.
+      await tester.enterText(
+          find.byType(TextField), 'AQ.EXEMPLE0FICTIF0PourLesTests0NePasUtiliser00');
       await tester.pump();
       expect(tester.widget<FilledButton>(terminer).onPressed, isNotNull);
       expect(tester.takeException(), isNull);

@@ -100,7 +100,9 @@ L'app s'ouvre sur un écran qui propose deux chemins :
 - **Voir un exemple** — active le mode démo : transcription, traduction et résumé fictifs, rien à configurer. C'est aussi ce qui permet à un testeur de l'App Store de juger l'app sans clé (règle 4.2, « minimum functionality »).
 - **Commencer pour de vrai** — explique en trois phrases à quoi sert la clé Gemini, ouvre la bonne page Google d'un bouton, et **vérifie la forme de ce qui est collé** avant de l'accepter.
 
-Cette dernière vérification n'est pas cosmétique : une clé tronquée acceptée ici ressort en « erreur 400 » au premier traitement, dix minutes plus tard, et l'app passe pour cassée. Une clé Gemini commence par `AIza` et fait une quarantaine de caractères ; collée dans le mauvais champ, elle est signalée tout de suite.
+Cette dernière vérification ne porte **jamais sur le préfixe attendu**, et c'est une leçon payée cash : les clés Gemini ont commencé par `AIza`, puis Google est passé à `AQ.` — la vérification, censée aider, refusait alors des clés parfaitement valides et bloquait l'app au premier écran.
+
+Ne sont donc refusées que les saisies qui ne peuvent pas être des clés : champ trop court, espaces, adresse e-mail, URL de la page, et surtout une clé **recopiée depuis l'écran plutôt que par le bouton Copier** — Google n'y affiche qu'une version abrégée, terminée par des points de suspension. C'est l'erreur la plus fréquente, et la seule que le contrôle attrape vraiment. Une clé au format inconnu passe, avec un simple avertissement.
 
 Une seule clé Gemini couvre la transcription *et* la traduction, et l'écran la configure pour les deux — l'utilisateur n'a pas à comprendre la différence. Les clés sont rangées dans le trousseau iOS / keystore Android, jamais dans un fichier en clair.
 
@@ -124,7 +126,7 @@ lib/
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                bienvenue, accueil, détail, réglages
-test/khoutba_test.dart   53 tests (modèles Gemini, JSON, statuts, formats, découpage,
+test/khoutba_test.dart   54 tests (modèles Gemini, JSON, statuts, formats, découpage,
                          extraction audio, espace disque, reprises, clés,
                          bienvenue, affichage)
 ```
@@ -142,7 +144,7 @@ Les messages sont réécrits en français : « le service est saturé en ce mome
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 53 tests au vert
+- `flutter test` : 54 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.
