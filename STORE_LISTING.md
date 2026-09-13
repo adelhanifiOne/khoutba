@@ -244,6 +244,11 @@ cd outils/captures && node generer.js
 ```bash
 cd native
 flutter build ipa --release
+
+# Contrôle avant envoi : doit afficher « 1 » seul, sans « 2 »
+/usr/libexec/PlistBuddy -c "Print :UIDeviceFamily" \
+  build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app/Info.plist
+
 open build/ios/archive/Runner.xcarchive
 ```
 
@@ -260,9 +265,24 @@ Autant remplir les textes et les captures pendant ce temps.
 > l'app n'utilise que HTTPS et le trousseau, deux usages exemptés. Sans cette clé, App Store
 > Connect repose la question à chaque envoi.
 
+### Pourquoi ce contrôle du `UIDeviceFamily`
+
+Un numéro de build ne s'envoie qu'**une fois** : une archive ratée coûte un nouveau numéro et
+trente minutes de traitement. Or l'erreur que provoque une archive universelle — « chargez une
+capture adaptée aux iPad de 13 pouces » — ne dit nulle part que le binaire est en cause, et
+App Store Connect l'affiche de toute façon tant qu'aucune build n'est attachée. On peut donc
+chercher longtemps du mauvais côté.
+
+Le piège est structurel : Xcode écrit ses réglages de signature dans `project.pbxproj`, un
+fichier suivi par git. Le dépôt et la copie locale divergent alors sur ce fichier, `git pull`
+refuse de le fusionner, et `TARGET_DEVICE_FAMILY` reste à sa valeur d'origine `"1,2"` sans que
+rien ne le signale. C'est arrivé. Trente secondes de contrôle valent mieux qu'un aller-retour
+de trente minutes.
+
 ## ✅ Avant d'envoyer
 
 - [ ] `privacy.html` est en ligne et s'ouvre — Apple vérifie le lien
+- [ ] `UIDeviceFamily` de l'archive affiche **`1` seul** (commande ci-dessus)
 - [ ] Numéro de version et build incrémentés dans `native/pubspec.yaml`
 - [ ] `native/lib/version.dart` mis à jour (visible dans ⚙️ Réglages)
 - [ ] Testé une fois **app fraîchement installée**, pour voir l'écran de bienvenue
