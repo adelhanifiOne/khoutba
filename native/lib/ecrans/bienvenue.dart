@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 
 import '../cle_api.dart';
 import '../etat.dart';
+import '../exemple.dart';
 import '../theme.dart';
 
 class EcranBienvenue extends StatefulWidget {
@@ -41,15 +42,20 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
     super.dispose();
   }
 
-  Future<void> _terminer() async {
+  /// [idOuvrir] : fiche que l'écran d'accueil doit ouvrir dans la foulée.
+  Future<void> _terminer([String? idOuvrir]) async {
     etat.reglages.accueilVu = true;
     await etat.reglages.enregistrer();
-    if (mounted) Navigator.pop(context);
+    if (mounted) Navigator.pop(context, idOuvrir);
   }
 
   Future<void> _voirExemple() async {
     etat.reglages.demo = true;
-    await _terminer();
+    // La fiche est créée avant de fermer : on enchaîne directement sur une
+    // khoutba traitée, au lieu de renvoyer sur une liste vide.
+    final rec = await creerExemple();
+    await etat.rafraichir();
+    await _terminer(rec.id);
   }
 
   Future<void> _enregistrerCle() async {

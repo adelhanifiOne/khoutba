@@ -10,6 +10,7 @@ import 'package:khoutba/cle_api.dart';
 import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/ecrans/bienvenue.dart';
 import 'package:khoutba/enregistreur.dart';
+import 'package:khoutba/exemple.dart';
 import 'package:khoutba/extraction_audio.dart';
 import 'package:khoutba/fournisseurs.dart';
 import 'package:khoutba/import_media.dart';
@@ -285,6 +286,26 @@ void main() {
       expect(urlCle('openai'), contains('platform.openai.com'));
       expect(urlCle('anthropic'), contains('anthropic.com'));
       expect(urlCle('inconnu'), urlCleGemini); // repli : le service par défaut
+    });
+  });
+
+  group('Khoutba d’exemple', () {
+    test('la date tombe toujours un vendredi', () {
+      // « Voir un exemple » montrait une liste vide ; la fiche créée doit au
+      // moins être crédible — une khoutba datée d'un mardi se remarque.
+      for (var j = 1; j <= 7; j++) {
+        final depuis = DateTime(2026, 9, 7 + j - 1); // du lundi au dimanche
+        final v = dernierVendredi(depuis);
+        expect(v.weekday, DateTime.friday, reason: 'depuis ${depuis.weekday}');
+        expect(v.isAfter(depuis.subtract(const Duration(days: 7))), isTrue);
+        expect(v.isBefore(depuis.add(const Duration(days: 1))), isTrue);
+      }
+    });
+
+    test('un vendredi reste ce vendredi-là', () {
+      final v = dernierVendredi(DateTime(2026, 9, 11, 20)); // un vendredi soir
+      expect(v.day, 11);
+      expect(v.hour, 13); // après la prière, pas à minuit
     });
   });
 

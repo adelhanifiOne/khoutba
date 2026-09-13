@@ -6,12 +6,26 @@ fond prune, accroche, filet doré, et les dimensions exactes réclamées par App
 Les captures doivent venir de l'app réelle — Apple demande l'application « en cours
 d'utilisation », et une image reconstituée qui dérive de l'app est un motif de rejet.
 
-## 1. Prendre les six captures
+## Le plus simple : le simulateur
 
-Sur l'iPhone, **active d'abord le mode démo** : ⚙️ Réglages → *Mode démo*. Le contenu affiché
-devient fictif : aucune vraie khoutba, aucune clé API ne se retrouve sur une image publique.
+```bash
+cd outils/captures && ./simulateur.command
+```
 
-Lance ensuite un traitement sur n'importe quel enregistrement, puis capture dans cet ordre :
+Le script démarre un iPhone Pro Max, **fige la barre d'état sur 9:41** (batterie pleine, aucune
+notification), installe l'app fraîchement compilée, et capture à chaque fois que tu appuies sur
+Entrée. Les images sortent aux dimensions exactes d'Apple, sans retouche et sans donnée
+personnelle à l'écran. Il lance l'habillage tout seul à la fin.
+
+Dans le simulateur, appuie sur **« Voir un exemple »** : une khoutba déjà traitée s'ouvre, avec
+tout le contenu nécessaire aux six captures.
+
+## Ou à la main, depuis ton téléphone
+
+**Active d'abord le mode démo** : ⚙️ Réglages → *Mode démo*. Le contenu affiché devient fictif :
+aucune vraie khoutba, aucune clé API ne se retrouve sur une image publique.
+
+Capture ensuite dans cet ordre :
 
 | Fichier | Écran à capturer |
 |---------|------------------|
@@ -28,7 +42,7 @@ range-les dans `outils/captures/brutes/` sous ces noms exacts.
 > La barre d'état est conservée telle quelle. Apple l'accepte ; évite simplement une capture
 > avec 3 % de batterie ou une notification en haut de l'écran.
 
-## 2. Produire les images
+## Produire les images (si tu as capturé à la main)
 
 ```bash
 cd outils/captures

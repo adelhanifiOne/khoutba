@@ -778,7 +778,8 @@ Future<String> _lireFluxSSEUneFois({
 
 // ---------------------------------------------------------------------- Démo
 
-const _demoTranscription = '''الحمد لله ربّ العالمين، والصلاة والسلام على أشرف المرسلين، سيدنا محمد وعلى آله وصحبه أجمعين. أما بعد، فيا عباد الله، أوصيكم ونفسي بتقوى الله عز وجل.
+// Contenu fictif du mode démo, partagé avec la khoutba d'exemple.
+const demoTranscription = '''الحمد لله ربّ العالمين، والصلاة والسلام على أشرف المرسلين، سيدنا محمد وعلى آله وصحبه أجمعين. أما بعد، فيا عباد الله، أوصيكم ونفسي بتقوى الله عز وجل.
 
 عباد الله، إنّ نعم الله علينا لا تُعدّ ولا تُحصى: نعمة الإيمان، ونعمة الصحة، ونعمة الأمن، ونعمة الأهل والولد. قال الله تعالى: «وَإِذْ تَأَذَّنَ رَبُّكُمْ لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ وَلَئِن كَفَرْتُمْ إِنَّ عَذَابِي لَشَدِيدٌ».
 
@@ -786,7 +787,7 @@ const _demoTranscription = '''الحمد لله ربّ العالمين، وال
 
 فاتقوا الله عباد الله، واشكروه على نعمه يزدكم من فضله، وحافظوا على الصلاة في وقتها. أقول قولي هذا وأستغفر الله لي ولكم.''';
 
-const _demoTraduction =
+const demoTraduction =
     '''Louange à Allah, Seigneur des mondes. Que la paix et le salut soient sur le plus noble des messagers, notre maître Mohammed ﷺ, ainsi que sur sa famille et l'ensemble de ses compagnons. Ceci étant dit : ô serviteurs d'Allah, je vous recommande, à vous comme à moi-même, la crainte d'Allah.
 
 Serviteurs d'Allah, les bienfaits d'Allah sur nous ne se comptent pas : le bienfait de la foi, celui de la santé, celui de la sécurité, celui de la famille et des enfants. Allah le Très-Haut a dit : « Et lorsque votre Seigneur proclama : si vous êtes reconnaissants, très certainement J'augmenterai [Mes bienfaits] pour vous ; mais si vous êtes ingrats, Mon châtiment sera terrible » (Ibrahim, 14:7).
@@ -795,7 +796,7 @@ La gratitude s'exprime par le cœur, par la langue et par les membres. Le Messag
 
 Craignez donc Allah, remerciez-Le pour Ses bienfaits, Il vous en accordera davantage par Sa grâce, et préservez la prière à son heure. Je dis ces paroles et je demande pardon à Allah pour moi et pour vous.''';
 
-const _demoSynthese = {
+const demoSynthese = {
   'titre': 'La gratitude envers Allah (ach-choukr)',
   'theme':
       "Reconnaître les bienfaits d'Allah et les faire fructifier par la reconnaissance du cœur, de la langue et des actes.",
@@ -838,22 +839,22 @@ const _demoSynthese = {
 class ClientDemo {
   Future<String> transcrire() async {
     await Future.delayed(const Duration(milliseconds: 1800));
-    return _demoTranscription;
+    return demoTranscription;
   }
 
   Future<String> generer({Map<String, dynamic>? schema, void Function(String)? onDelta}) async {
     if (schema != null) {
       await Future.delayed(const Duration(milliseconds: 1200));
-      return jsonEncode(_demoSynthese);
+      return jsonEncode(demoSynthese);
     }
-    final morceaux = _demoTraduction.split(RegExp(r'(?<=\. )'));
+    final morceaux = demoTraduction.split(RegExp(r'(?<=\. )'));
     final tampon = StringBuffer();
     for (final m in morceaux) {
       tampon.write(m);
       onDelta?.call(tampon.toString());
       await Future.delayed(const Duration(milliseconds: 60));
     }
-    return _demoTraduction;
+    return demoTraduction;
   }
 }
 

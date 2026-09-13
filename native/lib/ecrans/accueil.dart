@@ -54,8 +54,15 @@ class _EcranAccueilState extends State<EcranAccueil> {
   void _signalerDemarrage() {
     if (!mounted) return;
     if (!etat.reglages.accueilVu) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const EcranBienvenue()))
-          .then((_) => mounted ? setState(() {}) : null);
+      Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (_) => const EcranBienvenue()),
+      ).then((idOuvrir) {
+        if (!mounted) return;
+        setState(() {});
+        final rec = idOuvrir == null ? null : etat.parId(idOuvrir);
+        if (rec != null) _ouvrir(rec);
+      });
       return;
     }
     if (etat.messageRecuperation != null) {

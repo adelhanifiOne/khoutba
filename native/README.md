@@ -97,7 +97,7 @@ Copie l'APK sur le téléphone et installe-le (il faut autoriser les « sources 
 
 L'app s'ouvre sur un écran qui propose deux chemins :
 
-- **Voir un exemple** — active le mode démo : transcription, traduction et résumé fictifs, rien à configurer. C'est aussi ce qui permet à un testeur de l'App Store de juger l'app sans clé (règle 4.2, « minimum functionality »).
+- **Voir un exemple** — crée une khoutba **déjà traitée** et l'ouvre : résumé, versets cités, traduction et texte arabe, immédiatement lisibles, sans clé ni attente. Le bouton se contentait d'activer le mode démo et renvoyait sur une liste vide — le premier écran de quiconque découvrait l'app, testeur de l'App Store compris, à qui l'on demandait de juger sur rien. C'est aussi ce qui satisfait la règle 4.2 (« minimum functionality »).
 - **Commencer pour de vrai** — explique en trois phrases à quoi sert la clé Gemini, ouvre la bonne page Google d'un bouton, et **vérifie la forme de ce qui est collé** avant de l'accepter.
 
 Cette dernière vérification ne porte **jamais sur le préfixe attendu**, et c'est une leçon payée cash : les clés Gemini ont commencé par `AIza`, puis Google est passé à `AQ.` — la vérification, censée aider, refusait alors des clés parfaitement valides et bloquait l'app au premier écran.
@@ -120,15 +120,16 @@ lib/
   stockage.dart          index JSON + fichiers audio
   reglages.dart          préférences + clés API (stockage sécurisé)
   cle_api.dart           obtention et contrôle de forme des clés API
+  exemple.dart           la khoutba de démonstration, déjà traitée
   import_media.dart      import d'un audio/vidéo depuis Fichiers ou la galerie
   version.dart           version affichée dans les réglages (repère de mise à jour)
   extraction_audio.dart  isole la piste sonore d'une vidéo (code natif iOS/Android)
   modeles.dart           structures de données
   theme.dart             couleurs, styles (clair/sombre, texte arabe)
   ecrans/                bienvenue, accueil, détail, réglages
-test/khoutba_test.dart   54 tests (modèles Gemini, JSON, statuts, formats, découpage,
+test/khoutba_test.dart   56 tests (modèles Gemini, JSON, statuts, formats, découpage,
                          extraction audio, espace disque, reprises, clés,
-                         bienvenue, affichage)
+                         bienvenue, exemple, affichage)
 ```
 
 Le modèle Gemini n'est pas codé en dur : l'app interroge la liste des modèles accessibles avec ta clé et bascule automatiquement si l'un est retiré (même logique que la version web).
@@ -144,7 +145,7 @@ Les messages sont réécrits en français : « le service est saturé en ce mome
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 54 tests au vert
+- `flutter test` : 56 tests au vert
 - Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.
