@@ -224,6 +224,27 @@ cd outils/captures && node generer.js
 
 ---
 
+## 📦 Envoyer la build
+
+```bash
+cd native
+flutter build ipa --release
+open build/ios/archive/Runner.xcarchive
+```
+
+Xcode s'ouvre sur l'archive : **Distribute App → App Store Connect → Upload**.
+
+Vérifie avant : dans Xcode, *Signing & Capabilities* doit pointer sur ton **équipe payante**,
+pas sur « Personal Team » — une archive signée par l'équipe personnelle est refusée au
+téléversement.
+
+Comptez 15 à 30 minutes de traitement chez Apple avant que la build apparaisse dans la fiche.
+Autant remplir les textes et les captures pendant ce temps.
+
+> La déclaration de chiffrement (`ITSAppUsesNonExemptEncryption`) est dans l'`Info.plist` :
+> l'app n'utilise que HTTPS et le trousseau, deux usages exemptés. Sans cette clé, App Store
+> Connect repose la question à chaque envoi.
+
 ## ✅ Avant d'envoyer
 
 - [ ] `privacy.html` est en ligne et s'ouvre — Apple vérifie le lien

@@ -8,6 +8,12 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<!-- Khoutba ne chiffre rien elle-même : elle n'utilise que HTTPS pour
+	     joindre le service d'IA, et le trousseau pour ranger la clé — deux
+	     usages exemptés. Sans cette clé, App Store Connect repose la question
+	     à chaque envoi de build, et une réponse hâtive retarde la validation. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Khoutba a besoin du micro pour enregistrer le prêche à la mosquée. L'enregistrement reste sur votre téléphone.</string>
 	<!-- Import d'une vidéo déjà filmée : lecture seule de la photothèque. -->
