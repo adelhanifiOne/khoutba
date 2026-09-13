@@ -9,6 +9,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoutba/cle_api.dart';
 import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/ecrans/bienvenue.dart';
+import 'package:khoutba/ecrans/detail.dart';
 import 'package:khoutba/enregistreur.dart';
 import 'package:khoutba/exemple.dart';
 import 'package:khoutba/extraction_audio.dart';
@@ -286,6 +287,49 @@ void main() {
       expect(urlCle('openai'), contains('platform.openai.com'));
       expect(urlCle('anthropic'), contains('anthropic.com'));
       expect(urlCle('inconnu'), urlCleGemini); // repli : le service par défaut
+    });
+  });
+
+  group('Versets et hadiths cités', () {
+    const verset = Citation(
+      type: 'coran',
+      texteArabe: 'وَإِذْ تَأَذَّنَ رَبُّكُمْ',
+      traduction: 'Et lorsque votre Seigneur proclama…',
+      reference: 'Sourate Ibrahim, 14:7',
+    );
+
+    testWidgets('la carte dessine bien son contenu', (tester) async {
+      // Le cadre mêlait coin arrondi et bordure non uniforme, ce que Flutter
+      // interdit : la peinture levait une exception, la carte était mesurée
+      // mais rien n'était dessiné — deux rectangles blancs vides à la place
+      // des citations, jusque dans les captures de l'App Store.
+      await tester.pumpWidget(MaterialApp(
+        theme: themeClair(),
+        home: const Scaffold(body: CarteCitation(citation: verset)),
+      ));
+      expect(tester.takeException(), isNull);
+      expect(find.text(verset.texteArabe), findsOneWidget);
+      expect(find.text(verset.traduction), findsOneWidget);
+      expect(find.textContaining(verset.reference), findsOneWidget);
+    });
+
+    testWidgets('et aussi en thème sombre', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: themeSombre(),
+        home: const Scaffold(body: CarteCitation(citation: verset)),
+      ));
+      expect(tester.takeException(), isNull);
+      expect(find.text(verset.texteArabe), findsOneWidget);
+    });
+
+    test('les citations de l’exemple arrivent entières', () {
+      final s = Synthese.depuisJson(Map<String, dynamic>.from(demoSynthese));
+      expect(s.citations.length, 2);
+      for (final c in s.citations) {
+        expect(c.texteArabe, isNotEmpty);
+        expect(c.traduction, isNotEmpty);
+        expect(c.reference, isNotEmpty);
+      }
     });
   });
 

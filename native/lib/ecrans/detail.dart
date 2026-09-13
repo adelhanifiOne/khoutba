@@ -504,40 +504,66 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
     );
   }
 
-  Widget _carteCitation(BuildContext context, Citation c) {
+  Widget _carteCitation(BuildContext context, Citation c) => CarteCitation(citation: c);
+}
+
+/// Un verset ou un hadith cité : texte arabe, traduction, référence.
+///
+/// Le filet doré est un élément à part, pas une bordure. Flutter interdit de
+/// mêler coins arrondis et bordure non uniforme : la version précédente le
+/// faisait, et la peinture levait une exception — le cadre était mesuré, mais
+/// rien n'était dessiné. Résultat : deux rectangles blancs vides à la place
+/// des citations, visibles seulement en build debug.
+class CarteCitation extends StatelessWidget {
+  final Citation citation;
+  const CarteCitation({super.key, required this.citation});
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final sombre = theme.brightness == Brightness.dark;
+    final c = citation;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: sombre ? Couleurs.orSombre : Couleurs.or, width: 3),
-          top: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
-          right: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
-          bottom: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
-        ),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SelectableText(
-            c.texteArabe,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.right,
-            style: styleArabe(context, taille: 19),
-          ),
-          const SizedBox(height: 8),
-          SelectableText(c.traduction, style: const TextStyle(fontSize: 14.5, height: 1.5)),
-          const SizedBox(height: 8),
-          Text(
-            '${c.type == 'coran' ? '📖' : c.type == 'hadith' ? '💬' : '•'} ${c.reference}',
-            style: TextStyle(fontSize: 12, color: theme.hintColor),
-          ),
-        ],
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 3, color: sombre ? Couleurs.orSombre : Couleurs.or),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SelectableText(
+                      c.texteArabe,
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.right,
+                      style: styleArabe(context, taille: 19),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(c.traduction,
+                        style: const TextStyle(fontSize: 14.5, height: 1.5)),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${c.type == 'coran' ? '📖' : c.type == 'hadith' ? '💬' : '•'} ${c.reference}',
+                      style: TextStyle(fontSize: 12, color: theme.hintColor),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
