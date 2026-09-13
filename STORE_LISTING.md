@@ -1,0 +1,227 @@
+# Fiches Store Khoutba — textes prêts à publier
+
+Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.0 (1)
+Politique de confidentialité : https://adelhanifione.github.io/khoutba/privacy.html
+
+> Les limites de caractères de chaque champ sont indiquées. Ne pas dépasser.
+
+---
+
+## 🍎 APP STORE (iOS)
+
+### 🇫🇷 Français
+
+**Nom de l'app** (max 30) :
+```
+Khoutba
+```
+
+**Sous-titre** (max 30) :
+```
+Le prêche du vendredi, traduit
+```
+
+**Texte promotionnel** (max 170, modifiable sans review) :
+```
+Enregistrez le prêche à la mosquée. De retour chez vous, retrouvez-le en français : texte arabe, traduction complète et résumé des points essentiels.
+```
+
+**Mots-clés** (max 100, séparés par virgules, sans espaces) :
+```
+prêche,vendredi,traduction,arabe,transcription,islam,mosquée,imam,jumua,sermon,coran,resume
+```
+
+**Description** (max 4000) :
+```
+Vous êtes à la mosquée, l'imam parle en arabe, et vous ne saisissez qu'une partie de ce qui se dit. Khoutba enregistre le prêche ; de retour chez vous, il vous le rend en français.
+
+COMMENT ÇA MARCHE
+1. À la mosquée, appuyez sur le micro et rangez votre téléphone. L'enregistrement continue écran éteint.
+2. À la maison, appuyez sur « Transcrire & traduire ».
+3. Lisez, à votre rythme.
+
+CE QUE VOUS OBTENEZ
+• Le résumé : thème, idées essentielles, conseils pratiques de l'imam
+• Les versets du Coran et les hadiths cités, en arabe, avec leur traduction et leur référence
+• La traduction française intégrale du prêche
+• Le texte arabe complet, pour ceux qui veulent suivre l'original
+
+VOUS AVEZ DÉJÀ UN FICHIER ?
+Un mémo vocal, un audio reçu sur WhatsApp, une vidéo du prêche filmée avec le téléphone : importez-le, Khoutba le traite de la même façon. D'une vidéo, seule la piste sonore est conservée — un prêche filmé passe ainsi de plusieurs centaines de mégaoctets à une dizaine.
+
+TOUT RESTE CHEZ VOUS
+Khoutba n'a pas de serveur et ne crée aucun compte. Vos enregistrements, vos textes et vos préférences ne quittent pas votre téléphone. Le seul envoi est celui que vous déclenchez : l'audio part alors vers le service d'intelligence artificielle que vous avez choisi, avec votre propre clé, et rien d'autre ne circule.
+
+AVANT DE COMMENCER
+L'application utilise un service d'IA pour transcrire et traduire. Il vous faut donc une clé — celle de Google Gemini est gratuite et s'obtient en deux minutes ; l'application vous guide pas à pas et ouvre la bonne page pour vous. Une seule clé suffit pour tout.
+
+Vous pouvez aussi découvrir l'application entièrement sans clé : appuyez sur « Voir un exemple » au premier lancement.
+
+À GARDER EN TÊTE
+La transcription automatique reste un outil, pas une parole d'autorité. Les références des versets et des hadiths sont identifiées par l'IA et méritent d'être vérifiées avant d'être citées. Rien ne remplace l'écoute directe ni la demande d'éclaircissement à l'imam.
+
+Qu'Allah agrée vos vendredis.
+```
+
+### 🇬🇧 English
+
+**App Name** (max 30) :
+```
+Khoutba
+```
+
+**Subtitle** (max 30) :
+```
+Friday sermon, translated
+```
+
+**Promotional text** (max 170) :
+```
+Record the Friday sermon at the mosque. Back home, read it in your language: full Arabic text, complete translation, and a summary of the key points.
+```
+
+**Keywords** (max 100) :
+```
+khutbah,friday,sermon,arabic,translation,transcription,islam,mosque,imam,jumuah,quran,summary
+```
+
+**Description** (max 4000) :
+```
+You are at the mosque, the imam is speaking Arabic, and you only catch part of it. Khoutba records the sermon; back home, it gives it back to you in your language.
+
+HOW IT WORKS
+1. At the mosque, tap the microphone and put your phone away. Recording continues with the screen off.
+2. At home, tap "Transcribe & translate".
+3. Read, at your own pace.
+
+WHAT YOU GET
+• A summary: theme, key ideas, the imam's practical advice
+• Quran verses and hadiths quoted, in Arabic, with translation and reference
+• The full translation of the sermon
+• The complete Arabic text, for those who want to follow the original
+
+ALREADY HAVE A FILE?
+A voice memo, an audio message from WhatsApp, a video of the sermon filmed on your phone: import it and Khoutba handles it the same way. From a video, only the sound track is kept — a filmed sermon goes from hundreds of megabytes down to about ten.
+
+EVERYTHING STAYS WITH YOU
+Khoutba has no server and creates no account. Your recordings, texts and settings never leave your phone. The only transfer is the one you trigger: the audio then goes to the AI service you chose, using your own key, and nothing else travels.
+
+BEFORE YOU START
+The app uses an AI service to transcribe and translate, so you need a key — Google Gemini's is free and takes two minutes to get; the app guides you and opens the right page for you. One key covers everything.
+
+You can also explore the whole app without any key: tap "See an example" on first launch.
+
+WORTH KEEPING IN MIND
+Automatic transcription is a tool, not an authority. Verse and hadith references are identified by AI and deserve checking before being quoted. Nothing replaces listening directly, or asking the imam.
+```
+
+---
+
+## 🤖 GOOGLE PLAY
+
+**Titre** (max 30) :
+```
+Khoutba — prêche traduit
+```
+
+**Description courte** (max 80) :
+```
+Enregistrez le prêche du vendredi, relisez-le en français chez vous.
+```
+
+**Description complète** (max 4000) :
+> Reprendre la description française de l'App Store ci-dessus, telle quelle.
+
+---
+
+## 📋 Champs annexes (les deux stores)
+
+| Champ | Valeur recommandée |
+|-------|--------------------|
+| Catégorie principale | Style de vie (Lifestyle) |
+| Catégorie secondaire (iOS) | Éducation |
+| Classification d'âge | 4+ / Tout public |
+| Site web support | https://adelhanifione.github.io/khoutba/ |
+| Email support | adel.hanifi@yahoo.fr |
+| Politique de confidentialité | https://adelhanifione.github.io/khoutba/privacy.html |
+| Prix | Gratuit, sans achat intégré |
+
+### Apple — questionnaire « App Privacy »
+
+L'app n'a pas de serveur, mais elle **transmet l'audio à un service tiers** quand l'utilisateur
+lance un traitement. Sous-déclarer cette transmission est le motif de rejet le plus courant sur
+ce questionnaire — mieux vaut la déclarer franchement.
+
+- **Audio Data** : collectée → **non liée à l'utilisateur**, **pas de tracking**,
+  usage : *Fonctionnalité de l'app*
+- **Other User Content** (le texte transcrit, envoyé pour traduction) : idem
+- Aucune autre donnée. Pas d'identifiants, pas de localisation, pas de publicité, pas d'analytics.
+
+### Google — formulaire « Data Safety »
+
+- Données collectées : **Audio** et **Autres contenus utilisateur**, transmis à un tiers choisi
+  par l'utilisateur, pour le fonctionnement de l'app
+- Partage avec des tiers : **oui**, le service d'IA sélectionné par l'utilisateur
+- Chiffrement en transit : **oui** (HTTPS)
+- Suppression des données : à la demande, directement auprès du service d'IA
+- Collecte facultative : oui — le mode démo n'envoie rien
+
+---
+
+## 🔍 Notes pour le testeur Apple (champ « App Review Information »)
+
+À coller tel quel. Ces trois points sont ceux qui font rejeter ce genre d'app.
+
+```
+Aucun compte n'est nécessaire pour tester l'application.
+
+1. MODE DÉMO — POUR TESTER SANS CLÉ
+Au premier lancement, appuyez sur « Voir un exemple ». L'application est alors
+entièrement fonctionnelle avec un contenu de démonstration : enregistrement,
+transcription arabe, traduction et résumé structuré. Aucune configuration n'est
+requise pour évaluer l'app.
+
+2. CLÉ API FOURNIE PAR L'UTILISATEUR
+Pour un usage réel, l'utilisateur fournit sa propre clé d'un service d'IA
+(Google Gemini, gratuite). L'application ne se contente pas de la demander :
+elle explique à quoi elle sert, ouvre la page de création d'un bouton, et
+vérifie la clé collée. Les clés sont stockées dans le trousseau iOS. Aucune clé
+n'est envoyée à l'éditeur, qui n'exploite aucun serveur.
+
+3. AUDIO EN ARRIÈRE-PLAN (UIBackgroundModes: audio)
+C'est la raison d'être de l'application. Un prêche du vendredi dure 20 à 40
+minutes ; l'utilisateur lance l'enregistrement puis range son téléphone dans sa
+poche, écran verrouillé, comme le veut le respect du lieu. Sans ce mode, iOS
+coupe la capture au verrouillage et l'application perd tout intérêt. Le mode
+n'est actif que pendant un enregistrement lancé par l'utilisateur, et l'interface
+affiche clairement que l'enregistrement est en cours.
+```
+
+---
+
+## 📸 Captures d'écran
+
+Six captures, mêmes écrans pour iPhone 6,7" et 6,5" (obligatoires) et iPad si vous publiez dessus.
+L'ordre compte : les deux premières sont les seules que la plupart des gens verront.
+
+| # | Écran | Accroche à incruster |
+|---|-------|----------------------|
+| 1 | Accueil, bouton micro | « Enregistrez le prêche, rangez votre téléphone » |
+| 2 | Onglet Résumé rempli | « Retrouvez-le en français, chez vous » |
+| 3 | Versets et hadiths cités | « Les versets cités, avec leur référence » |
+| 4 | Onglet Traduction | « La traduction intégrale, à votre rythme » |
+| 5 | Onglet النص العربي | « Et le texte arabe complet » |
+| 6 | Écran de bienvenue | « Rien ne quitte votre téléphone » |
+
+Le **mode démo** produit exactement le contenu qu'il faut pour ces captures, sans exposer une
+vraie khoutba ni une vraie clé : activez-le, lancez un traitement, photographiez.
+
+---
+
+## ✅ Avant d'envoyer
+
+- [ ] `privacy.html` est en ligne et s'ouvre — Apple vérifie le lien
+- [ ] Numéro de version et build incrémentés dans `native/pubspec.yaml`
+- [ ] `native/lib/version.dart` mis à jour (visible dans ⚙️ Réglages)
+- [ ] Testé une fois **app fraîchement installée**, pour voir l'écran de bienvenue
+- [ ] Testé le parcours démo de bout en bout, celui que suivra le testeur Apple

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Khoutba — Politique de confidentialité</title>
+  <meta name="description" content="Ce que Khoutba fait de vos enregistrements : rien ne quitte le téléphone, sauf l'audio envoyé au service d'IA que vous choisissez, au moment où vous le demandez." />
+  <meta name="theme-color" content="#5e2751" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" />
+  <style>
+    :root {
+      --fond: #faf7f5; --texte: #241a22; --doux: #6b5a66;
+      --accent: #5e2751; --bord: #e6dde3; --carte: #fff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fond: #17111a; --texte: #ece6ea; --doux: #a897a4;
+        --accent: #b87ba8; --bord: #2e2433; --carte: #221a26;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px 20px 80px;
+      font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--fond); color: var(--texte);
+    }
+    main { max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 26px; line-height: 1.25; margin: 0 0 6px; }
+    h2 { font-size: 18px; margin: 34px 0 10px; color: var(--accent); }
+    .maj { color: var(--doux); font-size: 14px; margin: 0 0 28px; }
+    .resume {
+      background: var(--carte); border: 1px solid var(--bord);
+      border-radius: 14px; padding: 16px 18px; margin: 0 0 8px;
+    }
+    ul { padding-left: 22px; }
+    li { margin: 6px 0; }
+    a { color: var(--accent); }
+    footer { margin-top: 44px; font-size: 14px; color: var(--doux); }
+    table { border-collapse: collapse; width: 100%; font-size: 14.5px; margin: 12px 0; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--bord); vertical-align: top; }
+    th { color: var(--doux); font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Politique de confidentialité</h1>
+  <p class="maj">Khoutba — dernière mise à jour : 13 septembre 2026</p>
+
+  <div class="resume">
+    <strong>En une phrase :</strong> Khoutba ne collecte rien, ne crée aucun compte et n'a aucun
+    serveur. Vos enregistrements restent sur votre téléphone. Le seul envoi possible est celui
+    que vous déclenchez vous-même, vers le service d'intelligence artificielle que vous avez
+    choisi, pour faire transcrire et traduire un prêche.
+  </div>
+
+  <h2>Ce qui reste sur votre téléphone</h2>
+  <ul>
+    <li>Les <strong>enregistrements audio</strong> et les fichiers que vous importez.</li>
+    <li>Les <strong>transcriptions, traductions et résumés</strong> obtenus.</li>
+    <li>Vos <strong>préférences</strong> (service choisi, langue).</li>
+    <li>Vos <strong>clés API</strong>, rangées dans le trousseau iOS ou le keystore Android,
+      jamais dans un fichier en clair.</li>
+  </ul>
+  <p>
+    L'auteur de l'application n'a accès à aucune de ces données. Il n'existe aucun serveur
+    Khoutba : rien ne transite par nous, y compris de façon anonyme. Désinstaller
+    l'application efface tout.
+  </p>
+
+  <h2>Le seul envoi, et il vient de vous</h2>
+  <p>
+    Quand vous appuyez sur <strong>« Transcrire &amp; traduire »</strong>, l'audio de
+    l'enregistrement concerné — et lui seul — est envoyé au service que vous avez configuré,
+    avec votre propre clé. Rien n'est envoyé avant cette action, ni en arrière-plan, ni pour
+    les autres enregistrements.
+  </p>
+  <p>
+    Ce service est votre fournisseur, pas le nôtre : l'usage qu'il fait des données relève de
+    ses propres conditions, que nous vous invitons à lire.
+  </p>
+  <table>
+    <tr><th>Service</th><th>Ce qu'il reçoit</th><th>Sa politique</th></tr>
+    <tr>
+      <td>Google Gemini</td><td>L'audio, puis le texte transcrit</td>
+      <td><a href="https://ai.google.dev/gemini-api/terms">ai.google.dev</a></td>
+    </tr>
+    <tr>
+      <td>OpenAI</td><td>L'audio (Whisper) ou le texte (GPT)</td>
+      <td><a href="https://openai.com/policies/privacy-policy/">openai.com</a></td>
+    </tr>
+    <tr>
+      <td>Anthropic</td><td>Le texte transcrit uniquement</td>
+      <td><a href="https://www.anthropic.com/legal/privacy">anthropic.com</a></td>
+    </tr>
+  </table>
+  <p>
+    Le <strong>mode démo</strong> n'envoie rien du tout : les textes affichés sont fictifs.
+  </p>
+
+  <h2>Autorisations demandées</h2>
+  <table>
+    <tr><th>Autorisation</th><th>Pourquoi</th></tr>
+    <tr><td>Micro</td><td>Enregistrer le prêche. Uniquement pendant un enregistrement que vous avez lancé.</td></tr>
+    <tr><td>Photos / Fichiers</td><td>Importer un audio ou une vidéo déjà sur le téléphone. Seul le fichier que vous choisissez est lu.</td></tr>
+    <tr><td>Notifications (Android)</td><td>Afficher la notification obligatoire pendant un enregistrement en arrière-plan.</td></tr>
+    <tr><td>Audio en arrière-plan (iOS)</td><td>Continuer l'enregistrement écran verrouillé, téléphone dans la poche.</td></tr>
+  </table>
+
+  <h2>Ce que Khoutba ne fait pas</h2>
+  <ul>
+    <li>Aucun compte, aucune inscription, aucune adresse e-mail demandée.</li>
+    <li>Aucune publicité, aucun traceur, aucun outil de mesure d'audience.</li>
+    <li>Aucune donnée vendue, louée ou partagée avec des tiers.</li>
+    <li>Aucune collecte concernant les mineurs — ni personne d'autre.</li>
+  </ul>
+
+  <h2>Vos droits</h2>
+  <p>
+    Puisque rien n'est collecté, il n'y a aucune donnée à consulter, corriger ou supprimer chez
+    nous. Sur votre téléphone, vous supprimez un enregistrement d'un geste, ou tout d'un coup
+    depuis ⚙️ Réglages. Pour les données reçues par votre service d'IA, adressez-vous
+    directement à lui, avec les liens ci-dessus.
+  </p>
+
+  <h2>Modifications</h2>
+  <p>
+    Toute évolution de cette politique sera publiée sur cette page, avec une nouvelle date de
+    mise à jour. Si un changement touchait à ce qui est envoyé et à qui, il serait annoncé dans
+    l'application elle-même.
+  </p>
+
+  <footer>
+    Une question ? <a href="mailto:adel.hanifi@yahoo.fr">adel.hanifi@yahoo.fr</a><br />
+    Le code de l'application est public :
+    <a href="https://github.com/adelhanifiOne/khoutba">github.com/adelhanifiOne/khoutba</a> —
+    tout ce qui est écrit ici est vérifiable.
+  </footer>
+</main>
+</body>
+</html>
