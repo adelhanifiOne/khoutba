@@ -99,10 +99,21 @@ function fabriquerExemples() {
   const exemple = process.argv.includes('--exemple');
   const police = fs.existsSync(POLICE) ? enBase64(POLICE) : null;
   if (!police) {
-    console.log('→ police Cairo absente (outils/logo/polices.sh), repli sur la police système');
+    console.log('→ police Cairo absente, repli sur la police système');
+    console.log('  Pour l’accroche dans la police du logo : bash ../logo/polices.sh');
   }
 
-  const nav = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
+  let nav;
+  try {
+    nav = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
+  } catch (e) {
+    // « npm install playwright » pose la bibliothèque, pas le navigateur :
+    // le message brut de Playwright noie cette nuance dans une pile d'appels.
+    console.error('✗ Le navigateur de Playwright n’est pas installé.');
+    console.error('  Lance : npx playwright install chromium');
+    process.exitCode = 1;
+    return;
+  }
   const p = await nav.newPage({ deviceScaleFactor: 1 });
 
   // Les repères sont rendus une fois en PNG, puis traités comme des captures.

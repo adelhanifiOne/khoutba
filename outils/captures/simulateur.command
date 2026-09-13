@@ -170,14 +170,31 @@ xcrun simctl status_bar "$udid" clear 2>/dev/null
 # ------------------------------------------------------------- 5. l'habillage
 
 titre "5. Habillage"
-if [ -d node_modules/playwright ] || [ -n "${NODE_PATH:-}" ]; then
-  node generer.js
-else
-  info "Playwright absent : installation…"
-  npm install playwright >/dev/null 2>&1 && node generer.js \
-    || info "Installe-le à la main (npm install playwright), puis : node generer.js"
+
+prises=$(ls brutes/*.png 2>/dev/null | wc -l | tr -d ' ')
+if [ "$prises" -eq 0 ]; then
+  erreur "Aucune capture prise — rien à habiller."
+  pause_finale
+  exit 1
 fi
 
+# La police du logo n'est pas versionnée : on la récupère si besoin, pour que
+# l'accroche soit dans la même police que l'icône.
+[ -f ../logo/polices/cairo_3.woff2 ] || bash ../logo/polices.sh >/dev/null 2>&1
+
+# « npm install playwright » installe la bibliothèque, pas le navigateur —
+# deux étapes distinctes, et l'oubli de la seconde passe pour un bug.
+[ -d node_modules/playwright ] || { info "Installation de Playwright…"; npm install playwright >/dev/null 2>&1; }
+npx playwright install chromium >/dev/null 2>&1
+
 echo
-ok "Terminé. Les images sont dans store/captures/"
+if node generer.js; then
+  ok "$prises capture(s) habillée(s) — voir store/captures/"
+  open ../../store/captures/6.9 2>/dev/null
+else
+  # Ne jamais annoncer une réussite qu'on n'a pas constatée : les captures
+  # brutes sont là, seul l'habillage a manqué.
+  erreur "L'habillage a échoué. Tes captures sont saines dans brutes/."
+  echo "  Reprends juste cette étape : cd outils/captures && node generer.js"
+fi
 pause_finale
