@@ -1,14 +1,17 @@
 // Écran des réglages : services IA, clés API, langue, stockage.
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../cle_api.dart';
 import '../etat.dart';
+import '../reglages.dart';
 import '../extraction_audio.dart';
 import '../fournisseurs.dart';
 import '../import_media.dart' show tailleLisible;
 import '../stockage.dart';
 import '../version.dart';
+import 'consentement_ia.dart';
 
 class EcranReglages extends StatefulWidget {
   const EcranReglages({super.key});
@@ -201,6 +204,13 @@ class _EcranReglagesState extends State<EcranReglages> {
             ],
           ),
           _bloc(
+            titre: 'Envoi de données',
+            explication:
+                'Ce qui part vers un service d’IA quand tu lances un traitement, '
+                'et à qui. Rien n’est envoyé sans ton accord.',
+            enfants: [_ligneConsentement(r)],
+          ),
+          _bloc(
             titre: 'Divers',
             enfants: [
               SwitchListTile(
@@ -327,6 +337,59 @@ class _EcranReglagesState extends State<EcranReglages> {
       subtitle: Text(definie ? 'Clé enregistrée ✓' : aide, style: const TextStyle(fontSize: 12)),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => _saisirCle(nom, libelle, aide),
+    );
+  }
+
+  /// État de l'accord d'envoi, consultable et révocable à tout moment.
+  ///
+  /// Apple demande que l'accord soit obtenu avant l'envoi ; le laisser
+  /// reprendre ensuite relève du simple bon sens, et évite qu'un oui donné une
+  /// fois vaille pour toujours.
+  Widget _ligneConsentement(Reglages r) {
+    final accorde = r.consentementIAValide;
+    final destinataires = r.destinatairesIA;
+
+    final String detail;
+    if (r.demo) {
+      detail = 'Mode démo : rien ne quitte l’appareil.';
+    } else if (destinataires.isEmpty) {
+      detail = 'Choisis d’abord un service IA ci-dessus.';
+    } else if (accorde) {
+      final noms = destinataires.map((d) => d.service).join(' et ');
+      final quand = DateTime.tryParse(r.consentementDate);
+      final date = quand == null ? '' : ', le ${DateFormat('d MMMM y', 'fr_FR').format(quand)}';
+      detail = 'Accord donné pour $noms$date.';
+    } else {
+      detail = 'Il te sera demandé avant le premier envoi.';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Ce qui est envoyé, et à qui',
+              style: TextStyle(fontSize: 14.5)),
+          subtitle: Text(detail, style: const TextStyle(fontSize: 12.5)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () async {
+            await revoirConsentementIA(context, r);
+            if (mounted) setState(() {});
+          },
+        ),
+        if (accorde && !r.demo)
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () async {
+              await r.revoquerConsentementIA();
+              if (mounted) setState(() {});
+            },
+            child: const Text('Retirer mon accord'),
+          ),
+      ],
     );
   }
 }

@@ -13,6 +13,7 @@ import '../modeles.dart';
 import '../stockage.dart';
 import '../theme.dart';
 import 'accueil.dart';
+import 'consentement_ia.dart';
 import 'reglages_ecran.dart';
 
 /// Position après un saut de [secondes], bornée au fichier. Reculer avant le
@@ -99,6 +100,14 @@ class _EcranDetailState extends State<EcranDetail> with SingleTickerProviderStat
       if (mounted) setState(() {});
       return;
     }
+    // Règles Apple 5.1.1(i) / 5.1.2(i) : accord explicite, obtenu avant que
+    // la moindre donnée ne parte, et redemandé si le destinataire change.
+    if (!etat.reglages.consentementIAValide) {
+      final accepte = await demanderConsentementIA(context, etat.reglages);
+      if (!mounted || !accepte) return;
+      setState(() {});
+    }
+
     final forcer = r.statut == Statut.termine;
     if (forcer) {
       final ok = await showDialog<bool>(

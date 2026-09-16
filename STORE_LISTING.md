@@ -1,6 +1,6 @@
 # Fiches Store Khoutba — textes prêts à publier
 
-Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.0 (1)
+Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.0 (4)
 Politique de confidentialité : https://adelhanifione.github.io/khoutba/privacy.html
 
 > Les limites de caractères de chaque champ sont indiquées. Ne pas dépasser.
@@ -171,25 +171,43 @@ ce questionnaire — mieux vaut la déclarer franchement.
 
 ## 🔍 Notes pour le testeur Apple (champ « App Review Information »)
 
-À coller tel quel. Ces trois points sont ceux qui font rejeter ce genre d'app.
+À coller tel quel. Ces quatre points sont ceux qui font rejeter ce genre d'app —
+le premier l'a effectivement fait, sur la build 1.0 (3).
 
 ```
 Aucun compte n'est nécessaire pour tester l'application.
 
-1. MODE DÉMO — POUR TESTER SANS CLÉ
+1. ACCORD AVANT TOUT ENVOI À UN SERVICE D'IA (règles 5.1.1(i) et 5.1.2(i))
+La version 1.0 (3) a été refusée sur ce point. Un écran d'accord plein écran
+s'affiche désormais avant le moindre envoi, et le traitement ne démarre pas tant
+qu'il n'a pas été accepté.
+Pour le voir : lancez l'app en mode démo, ouvrez la khoutba d'exemple, appuyez
+sur « Transcrire & traduire ». L'écran apparaît immédiatement, sans clé.
+Il énumère ce qui est envoyé (l'audio du prêche concerné, puis le texte arabe
+transcrit, puis la clé de l'utilisateur), nomme le destinataire — service ET
+raison sociale : Google LLC, OpenAI, L.L.C. ou Anthropic PBC — avec un lien vers
+sa politique, et liste ce qui n'est jamais envoyé. Deux boutons : « Ne pas
+envoyer » et « J'accepte l'envoi ».
+L'accord est mémorisé pour ce destinataire précis : changer de service dans les
+réglages le redemande, puisque ce n'est plus la même société qui reçoit.
+Il se relit et se retire à tout moment dans ⚙️ Réglages → « Envoi de données ».
+La politique de confidentialité en ligne reprend les mêmes éléments : données
+recueillies, comment, tous leurs usages, et le niveau de protection des tiers.
+
+2. MODE DÉMO — POUR TESTER SANS CLÉ
 Au premier lancement, appuyez sur « Voir un exemple ». L'application est alors
 entièrement fonctionnelle avec un contenu de démonstration : enregistrement,
 transcription arabe, traduction et résumé structuré. Aucune configuration n'est
-requise pour évaluer l'app.
+requise pour évaluer l'app. En mode démo, aucune donnée ne quitte l'appareil.
 
-2. CLÉ API FOURNIE PAR L'UTILISATEUR
+3. CLÉ API FOURNIE PAR L'UTILISATEUR
 Pour un usage réel, l'utilisateur fournit sa propre clé d'un service d'IA
 (Google Gemini, gratuite). L'application ne se contente pas de la demander :
 elle explique à quoi elle sert, ouvre la page de création d'un bouton, et
 vérifie la clé collée. Les clés sont stockées dans le trousseau iOS. Aucune clé
 n'est envoyée à l'éditeur, qui n'exploite aucun serveur.
 
-3. AUDIO EN ARRIÈRE-PLAN (UIBackgroundModes: audio)
+4. AUDIO EN ARRIÈRE-PLAN (UIBackgroundModes: audio)
 C'est la raison d'être de l'application. Un prêche du vendredi dure 20 à 40
 minutes ; l'utilisateur lance l'enregistrement puis range son téléphone dans sa
 poche, écran verrouillé, comme le veut le respect du lieu. Sans ce mode, iOS

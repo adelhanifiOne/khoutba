@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'consentement.dart';
 import 'fournisseurs.dart';
 
 class Reglages extends ChangeNotifier {
@@ -18,6 +19,12 @@ class Reglages extends ChangeNotifier {
   bool demo = false;
   bool accueilVu = false;    // l'écran de bienvenue ne se montre qu'une fois
 
+  // Accord d'envoi vers les services d'IA (règles Apple 5.1.1(i) / 5.1.2(i)).
+  // On mémorise *pour qui* l'accord a été donné, pas un simple oui : changer de
+  // service change le destinataire, et l'accord doit alors être redemandé.
+  String consentementIA = '';
+  String consentementDate = ''; // ISO 8601, affiché dans les réglages
+
   final Map<String, String> cles = {'gemini': '', 'openai': '', 'anthropic': ''};
 
   Future<void> charger() async {
@@ -29,6 +36,8 @@ class Reglages extends ChangeNotifier {
     langue = prefs.getString('langue') ?? 'fr';
     demo = prefs.getBool('demo') ?? false;
     accueilVu = prefs.getBool('accueilVu') ?? false;
+    consentementIA = prefs.getString('consentementIA') ?? '';
+    consentementDate = prefs.getString('consentementDate') ?? '';
     for (final nom in cles.keys) {
       try {
         cles[nom] = await _stockageSecurise.read(key: 'cle_$nom') ?? '';
@@ -48,6 +57,8 @@ class Reglages extends ChangeNotifier {
     await prefs.setString('langue', langue);
     await prefs.setBool('demo', demo);
     await prefs.setBool('accueilVu', accueilVu);
+    await prefs.setString('consentementIA', consentementIA);
+    await prefs.setString('consentementDate', consentementDate);
     notifyListeners();
   }
 
@@ -72,4 +83,37 @@ class Reglages extends ChangeNotifier {
   }
 
   bool get utiliseGemini => stt == 'gemini' || llm == 'gemini';
+
+  /// Services qui recevront effectivement quelque chose lors d'un traitement.
+  /// Vide en mode démo : rien ne sort de l'appareil.
+  List<DestinataireIA> get destinatairesIA =>
+      demo ? const [] : destinatairesPour(stt, llm);
+
+  /// Empreinte de la configuration d'envoi actuelle.
+  ///
+  /// Le mode démo a la sienne pour que l'écran d'explication soit vu une fois
+  /// même sans clé — c'est par là que passe le testeur d'Apple, et il doit
+  /// pouvoir constater que l'app demande l'accord.
+  String get signatureConsentement {
+    if (demo) return 'demo';
+    return signatureDestinataires(destinatairesIA.map((d) => d.id));
+  }
+
+  /// Vrai si l'utilisateur a déjà accepté d'envoyer à *ces* destinataires-là.
+  bool get consentementIAValide {
+    final signature = signatureConsentement;
+    return signature.isNotEmpty && consentementIA == signature;
+  }
+
+  Future<void> accorderConsentementIA() async {
+    consentementIA = signatureConsentement;
+    consentementDate = DateTime.now().toIso8601String();
+    await enregistrer();
+  }
+
+  Future<void> revoquerConsentementIA() async {
+    consentementIA = '';
+    consentementDate = '';
+    await enregistrer();
+  }
 }

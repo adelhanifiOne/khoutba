@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoutba/cle_api.dart';
+import 'package:khoutba/consentement.dart';
 import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/ecrans/bienvenue.dart';
 import 'package:khoutba/ecrans/detail.dart';
@@ -16,6 +17,7 @@ import 'package:khoutba/extraction_audio.dart';
 import 'package:khoutba/fournisseurs.dart';
 import 'package:khoutba/import_media.dart';
 import 'package:khoutba/modeles.dart';
+import 'package:khoutba/reglages.dart';
 import 'package:khoutba/stockage.dart';
 import 'package:khoutba/theme.dart';
 import 'package:khoutba/traitement.dart';
@@ -658,6 +660,96 @@ void main() {
       // pourrait traiter les vidéos importées.
       expect(extensionsWhisper, contains('m4a'));
       expect(mimeSimple('/x/id.m4a'), startsWith('audio/'));
+    });
+  });
+
+  group('accord d’envoi vers les services d’IA', () {
+    test('un service employé aux deux rôles n’est nommé qu’une fois', () {
+      // Une seule clé Gemini couvre transcription et rédaction : annoncer deux
+      // destinataires laisserait croire à deux sociétés.
+      final d = destinatairesPour('gemini', 'gemini');
+      expect(d, hasLength(1));
+      expect(d.single.societe, 'Google LLC');
+    });
+
+    test('deux services distincts sont tous deux nommés, dans l’ordre', () {
+      final d = destinatairesPour('openai', 'anthropic');
+      expect(d.map((e) => e.id), ['openai', 'anthropic']);
+    });
+
+    test('un identifiant inconnu ne produit pas de destinataire fantôme', () {
+      expect(destinatairesPour('', ''), isEmpty);
+      expect(destinatairesPour('inexistant', ''), isEmpty);
+    });
+
+    test('la signature ne dépend pas de l’ordre de saisie', () {
+      // Sinon, régler la traduction avant la transcription redemanderait
+      // l'accord pour exactement les mêmes sociétés.
+      expect(signatureDestinataires(['openai', 'gemini']),
+          signatureDestinataires(['gemini', 'openai']));
+    });
+
+    test('changer de service invalide l’accord donné pour l’ancien', () {
+      // Le cœur de l'exigence d'Apple : l'accord vaut pour un destinataire
+      // nommé. Passer de Google à Anthropic, c'est une autre société qui
+      // reçoit, donc un nouvel accord à demander.
+      final r = Reglages()
+        ..stt = 'gemini'
+        ..llm = 'gemini'
+        ..consentementIA = signatureDestinataires(['gemini']);
+      expect(r.consentementIAValide, isTrue);
+
+      r.llm = 'anthropic';
+      expect(r.consentementIAValide, isFalse);
+    });
+
+    test('sans accord enregistré, rien ne peut partir', () {
+      final r = Reglages()
+        ..stt = 'gemini'
+        ..llm = 'gemini';
+      expect(r.consentementIAValide, isFalse);
+    });
+
+    test('un accord ne vaut pas tant qu’aucun service n’est choisi', () {
+      // Une signature vide serait acceptée par simple égalité de chaînes.
+      final r = Reglages()..consentementIA = '';
+      expect(r.signatureConsentement, isEmpty);
+      expect(r.consentementIAValide, isFalse);
+    });
+
+    test('le mode démo a son propre accord et ne nomme aucun destinataire', () {
+      // L'écran doit rester traversable sans clé — c'est le parcours du
+      // testeur Apple — mais en démo rien ne sort de l'appareil.
+      final r = Reglages()..demo = true;
+      expect(r.destinatairesIA, isEmpty);
+      expect(r.signatureConsentement, 'demo');
+
+      r.consentementIA = 'demo';
+      expect(r.consentementIAValide, isTrue);
+
+      // Et cet accord-là ne vaut pas pour un envoi réel.
+      r.demo = false;
+      r.stt = 'gemini';
+      r.llm = 'gemini';
+      expect(r.consentementIAValide, isFalse);
+    });
+
+    test('chaque destinataire est nommé, situé et documenté', () {
+      // Apple exige d'identifier qui reçoit : un nom commercial seul ne suffit
+      // pas, la raison sociale et sa politique doivent être atteignables.
+      for (final d in destinatairesConnus.values) {
+        expect(d.service, isNotEmpty);
+        expect(d.societe, isNotEmpty);
+        expect(d.politique, startsWith('https://'));
+      }
+    });
+
+    test('on n’annonce pas d’audio à qui ne reçoit que du texte', () {
+      // Claude ne voit jamais l'enregistrement, seulement la transcription.
+      expect(cequilRecoit(transcrit: false, redige: true), contains('texte'));
+      expect(cequilRecoit(transcrit: false, redige: true), isNot(contains('audio')));
+      expect(cequilRecoit(transcrit: true, redige: false), contains('audio'));
+      expect(cequilRecoit(transcrit: true, redige: true), contains('audio'));
     });
   });
 }
