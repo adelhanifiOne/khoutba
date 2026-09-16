@@ -1,0 +1,65 @@
+# Podfile du projet iOS.
+#
+# Il était jusqu'ici laissé à la génération automatique de Flutter, et ça a
+# fini par coûter une compilation : chaque greffon apporte sa propre cible de
+# déploiement — 12.0 ici, 13.0 là — et Xcode 26 refuse désormais de compiler
+# quoi que ce soit en dessous d'iOS 15. Sans Podfile suivi par git, le réglage
+# se reperdait à chaque « pod install ».
+#
+# D'où ce fichier : le plancher est fixé à iOS 15, et le post_install le
+# remonte pour les greffons restés en arrière.
+
+platform :ios, '15.0'
+
+# Les statistiques CocoaPods partent en synchrone et ralentissent chaque build.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path =
+    File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} doit exister. " \
+          'Lance « flutter pub get » avant « pod install ».'
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT absent de #{generated_xcode_build_settings_path}. " \
+        'Supprime Generated.xcconfig puis relance « flutter pub get ».'
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+
+    target.build_configurations.each do |config|
+      # On remonte le plancher, jamais on ne l'abaisse : un greffon qui exige
+      # iOS 16 doit garder son exigence, sinon il ne compilerait plus.
+      actuel = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0' if actuel < 15.0
+    end
+  end
+end

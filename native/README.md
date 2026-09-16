@@ -159,7 +159,13 @@ Les messages sont réécrits en français : « le service est saturé en ce mome
 ## Vérifications faites
 
 - `flutter analyze` : aucun problème
-- `flutter test` : 63 tests au vert
-- Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), iOS 13.0 (plugins : 12.0)
+- `flutter test` : 73 tests au vert
+- Cibles de compilation contrôlées : Android minSdk 24 (plugins : 21), **iOS 15.0**
+
+> Le plancher iOS est fixé à 15.0 dans `ios/Podfile` et dans les trois configurations du
+> projet Xcode. Xcode 26 refuse de compiler en dessous, et chaque greffon apporte sa propre
+> cible — 12.0 pour certains. Le `post_install` du Podfile remonte celles qui traînent, sans
+> jamais abaisser celles qui exigent davantage. Le Podfile est suivi par git précisément pour
+> que ce réglage ne se reperde pas au prochain `pod install`.
 
 **Non vérifié dans l'environnement de développement** : la compilation finale, qui demande Xcode (Mac) ou le SDK Android. Le code Swift (`ios/Runner/ExtractionAudio.swift`) et Kotlin (`android/…/ExtractionAudio.kt`) de l'extraction audio n'y a donc jamais été compilé — seul son contrat côté Dart est couvert par les tests. La compilation est vérifiée par GitHub à chaque envoi de code — voir `.github/workflows/compilation.yml` : analyse, tests, APK Android et compilation iOS. L'APK produit est téléchargeable dans l'onglet **Actions** du dépôt (section *Artifacts*) et s'installe directement sur un téléphone Android.
