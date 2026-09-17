@@ -226,8 +226,8 @@ requise pour évaluer l'app. En mode démo, aucune donnée ne quitte l'appareil.
 3. CLÉ API FOURNIE PAR L'UTILISATEUR
 Pour un usage réel, l'utilisateur fournit sa propre clé d'un service d'IA
 (Google Gemini, gratuite). L'application ne se contente pas de la demander :
-elle explique à quoi elle sert, ouvre la page de création d'un bouton, et
-vérifie la clé collée. Les clés sont stockées dans le trousseau iOS. Aucune clé
+elle explique à quoi elle sert, ouvre la page de création de la clé d'un
+simple bouton, et vérifie ce qui est collé. Les clés sont stockées dans le trousseau iOS. Aucune clé
 n'est envoyée à l'éditeur, qui n'exploite aucun serveur.
 
 4. AUDIO EN ARRIÈRE-PLAN (UIBackgroundModes: audio)
