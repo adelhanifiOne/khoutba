@@ -16,6 +16,7 @@ import '../import_media.dart';
 import '../modeles.dart';
 import '../theme.dart';
 import 'bienvenue.dart';
+import 'consentement_ia.dart';
 import 'detail.dart';
 import 'reglages_ecran.dart';
 
@@ -305,12 +306,27 @@ class _EcranAccueilState extends State<EcranAccueil> {
           ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            child: Text(
-              "Tout reste sur ton téléphone. L'audio n'est envoyé qu'au service d'IA "
-              "que tu choisis, au moment du traitement.",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: theme.hintColor),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+            // Le détail de ce qui part et chez qui doit rester atteignable en
+            // permanence, pas seulement au premier lancement ni derrière le
+            // bouton de traitement.
+            child: Column(
+              children: [
+                Text(
+                  "Tout reste sur ton téléphone. L'audio n'est envoyé qu'au service d'IA "
+                  "que tu choisis, au moment du traitement.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: theme.hintColor),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await revoirConsentementIA(context, etat.reglages);
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('Ce qui est envoyé, et à qui',
+                      style: TextStyle(fontSize: 12.5)),
+                ),
+              ],
             ),
           ),
         ),

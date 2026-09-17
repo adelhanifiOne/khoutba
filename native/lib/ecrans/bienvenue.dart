@@ -13,9 +13,11 @@
 import 'package:flutter/material.dart';
 
 import '../cle_api.dart';
+import '../consentement.dart';
 import '../etat.dart';
 import '../exemple.dart';
 import '../theme.dart';
+import 'consentement_ia.dart';
 
 class EcranBienvenue extends StatefulWidget {
   const EcranBienvenue({super.key});
@@ -50,12 +52,36 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
   }
 
   Future<void> _voirExemple() async {
+    // L'accord d'envoi est demandé ici, sur le chemin que tout le monde prend,
+    // et pas seulement devant le bouton « Transcrire & traduire » : la khoutba
+    // d'exemple arrive déjà traitée, personne n'appuie sur « Retraiter », et
+    // l'écran restait donc invisible — y compris pour le testeur d'Apple, qui
+    // a refusé la 1.0 (4) faute de l'avoir rencontré.
     etat.reglages.demo = true;
+    if (!await demanderConsentementIA(context, etat.reglages)) {
+      etat.reglages.demo = false;
+      return;
+    }
     // La fiche est créée avant de fermer : on enchaîne directement sur une
     // khoutba traitée, au lieu de renvoyer sur une liste vide.
     final rec = await creerExemple();
     await etat.rafraichir();
     await _terminer(rec.id);
+  }
+
+  /// Accord pour le parcours « pour de vrai », qui mène toujours à Gemini.
+  ///
+  /// L'accord n'est pas mémorisé ici : les réglages ne portent pas encore le
+  /// service, et la signature enregistrée serait celle d'une configuration
+  /// vide. Il l'est à l'enregistrement de la clé, juste après.
+  Future<void> _versEtapeCle() async {
+    final accepte = await demanderConsentementIA(
+      context,
+      etat.reglages,
+      destinatairesForces: [destinatairesConnus['gemini']!],
+      memoriser: false,
+    );
+    if (accepte && mounted) setState(() => _etapeCle = true);
   }
 
   Future<void> _enregistrerCle() async {
@@ -66,6 +92,9 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
     r.llm = 'gemini';
     r.demo = false;
     await r.definirCle('gemini', _cle.text);
+    // Maintenant seulement la signature correspond à ce qui a été accepté à
+    // l'écran précédent : Google Gemini, pour la transcription et la rédaction.
+    await r.accorderConsentementIA();
     await _terminer();
   }
 
@@ -146,7 +175,7 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: () => setState(() => _etapeCle = true),
+            onPressed: _versEtapeCle,
             style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15)),
             child: const Text('Commencer pour de vrai'),
           ),

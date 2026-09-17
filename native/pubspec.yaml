@@ -1,7 +1,7 @@
 name: khoutba
 description: "Enregistre le prêche du vendredi, transcription arabe, traduction et résumé."
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   # Plancher réel imposé par le paquet `record` : inutile d'exiger plus,

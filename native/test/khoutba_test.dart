@@ -10,8 +10,10 @@ import 'package:khoutba/cle_api.dart';
 import 'package:khoutba/consentement.dart';
 import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/ecrans/bienvenue.dart';
+import 'package:khoutba/ecrans/consentement_ia.dart';
 import 'package:khoutba/ecrans/detail.dart';
 import 'package:khoutba/enregistreur.dart';
+import 'package:khoutba/etat.dart';
 import 'package:khoutba/exemple.dart';
 import 'package:khoutba/extraction_audio.dart';
 import 'package:khoutba/fournisseurs.dart';
@@ -387,6 +389,21 @@ void main() {
   });
 
   group('Écran de bienvenue', () {
+    // L'écran d'accord est long : sur un iPhone SE, ses boutons sont hors
+    // champ, donc pas encore construits par la liste paresseuse. On descend
+    // jusqu'à eux avant de les chercher.
+    Future<void> descendreJusque(WidgetTester tester, Finder cible) async {
+      await tester.scrollUntilVisible(
+        cible,
+        200,
+        scrollable: find.descendant(
+          of: find.byType(EcranConsentementIA),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
     // Il s'affiche au tout premier lancement, y compris sur un petit écran :
     // un débordement de quelques pixels y serait la première impression.
     testWidgets('propose l’exemple avant la configuration', (tester) async {
@@ -400,6 +417,71 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    // Le rejet 5.1.1(i) de la build 1.0 (4) tient tout entier là-dedans :
+    // l'écran d'accord existait, mais derrière « Transcrire & traduire ». Or la
+    // khoutba d'exemple arrive déjà traitée — personne n'appuie sur
+    // « Retraiter », et le testeur d'Apple ne l'a jamais vu. Les deux sorties
+    // de l'accueil doivent donc y passer.
+    testWidgets('« Voir un exemple » demande l’accord avant tout', (tester) async {
+      addTearDown(() => EtatApp.instance.reglages.demo = false);
+      tester.view.physicalSize = const Size(750, 1334);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(theme: themeClair(), home: const EcranBienvenue()));
+      await tester.ensureVisible(find.text('Voir un exemple'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Voir un exemple'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Envoi à un service d’IA'), findsOneWidget);
+      expect(find.textContaining('Ce qui est envoyé'), findsWidgets);
+      await descendreJusque(tester, find.text('Ne pas envoyer'));
+      expect(find.text('Ne pas envoyer'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('« Commencer pour de vrai » nomme Google avant la clé', (tester) async {
+      tester.view.physicalSize = const Size(750, 1334);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(theme: themeClair(), home: const EcranBienvenue()));
+      await tester.ensureVisible(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+
+      // Le destinataire est nommé alors même que les réglages sont encore
+      // vides : c'est ce que demande « specify who the data is sent to ».
+      expect(find.text('Envoi à un service d’IA'), findsOneWidget);
+      await descendreJusque(tester, find.text('Google Gemini'));
+      expect(find.text('Google Gemini'), findsOneWidget);
+      expect(find.textContaining('Google LLC'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('refuser l’accord ne mène nulle part', (tester) async {
+      tester.view.physicalSize = const Size(750, 1334);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(theme: themeClair(), home: const EcranBienvenue()));
+      await tester.ensureVisible(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+
+      await descendreJusque(tester, find.text('Ne pas envoyer'));
+      await tester.tap(find.text('Ne pas envoyer'));
+      await tester.pumpAndSettle();
+
+      // Retour à la case départ, pas de saisie de clé.
+      expect(find.text('Voir un exemple'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('la clé n’est acceptée que si elle en a la forme', (tester) async {
       tester.view.physicalSize = const Size(750, 1334);
       tester.view.devicePixelRatio = 2;
@@ -410,6 +492,11 @@ void main() {
       await tester.ensureVisible(find.text('Commencer pour de vrai'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+
+      // L'accord précède désormais la saisie.
+      await descendreJusque(tester, find.text('J’accepte l’envoi'));
+      await tester.tap(find.text('J’accepte l’envoi'));
       await tester.pumpAndSettle();
 
       final terminer = find.widgetWithText(FilledButton, 'Terminer');

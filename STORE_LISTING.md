@@ -1,6 +1,6 @@
 # Fiches Store Khoutba — textes prêts à publier
 
-Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.0 (4)
+Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.0 (5)
 Politique de confidentialité : https://adelhanifione.github.io/khoutba/privacy.html
 
 > Les limites de caractères de chaque champ sont indiquées. Ne pas dépasser.
@@ -172,27 +172,50 @@ ce questionnaire — mieux vaut la déclarer franchement.
 ## 🔍 Notes pour le testeur Apple (champ « App Review Information »)
 
 À coller tel quel. Ces quatre points sont ceux qui font rejeter ce genre d'app —
-le premier l'a effectivement fait, sur la build 1.0 (3).
+le premier l'a effectivement fait, deux fois : sur les builds 1.0 (3) et 1.0 (4).
 
 ```
 Aucun compte n'est nécessaire pour tester l'application.
 
 1. ACCORD AVANT TOUT ENVOI À UN SERVICE D'IA (règles 5.1.1(i) et 5.1.2(i))
-La version 1.0 (3) a été refusée sur ce point. Un écran d'accord plein écran
-s'affiche désormais avant le moindre envoi, et le traitement ne démarre pas tant
-qu'il n'a pas été accepté.
-Pour le voir : lancez l'app en mode démo, ouvrez la khoutba d'exemple, appuyez
-sur « Transcrire & traduire ». L'écran apparaît immédiatement, sans clé.
-Il énumère ce qui est envoyé (l'audio du prêche concerné, puis le texte arabe
-transcrit, puis la clé de l'utilisateur), nomme le destinataire — service ET
-raison sociale : Google LLC, OpenAI, L.L.C. ou Anthropic PBC — avec un lien vers
-sa politique, et liste ce qui n'est jamais envoyé. Deux boutons : « Ne pas
-envoyer » et « J'accepte l'envoi ».
-L'accord est mémorisé pour ce destinataire précis : changer de service dans les
-réglages le redemande, puisque ce n'est plus la même société qui reçoit.
-Il se relit et se retire à tout moment dans ⚙️ Réglages → « Envoi de données ».
+
+>>> C'EST LE DEUXIÈME ÉCRAN DE L'APPLICATION. IMPOSSIBLE DE L'ÉVITER. <<<
+
+Au tout premier lancement, l'écran d'accueil propose deux boutons :
+« Voir un exemple » et « Commencer pour de vrai ». LES DEUX ouvrent
+immédiatement l'écran d'accord, intitulé « Envoi à un service d'IA ».
+Aucune clé, aucun compte, aucune manipulation préalable n'est nécessaire :
+il suffit d'appuyer sur l'un des deux boutons.
+
+Cet écran :
+- énumère ce qui est envoyé : l'audio du prêche concerné, puis le texte arabe
+  transcrit, puis la clé API de l'utilisateur ;
+- énumère ce qui n'est jamais envoyé : aucun nom, e-mail, compte, identifiant
+  d'appareil, position ni statistique d'usage ; rien vers l'éditeur ;
+- nomme le destinataire par son service ET sa raison sociale — Google Gemini
+  (Google LLC), OpenAI (OpenAI, L.L.C.), Claude (Anthropic PBC) — avec un lien
+  vers la politique de confidentialité de chacun ;
+- indique que les offres gratuites peuvent conserver les contenus soumis ;
+- propose deux actions : « Ne pas envoyer » et « J'accepte l'envoi ».
+Refuser ramène en arrière et rien n'est transmis.
+
+L'accord est également exigé une seconde fois, au moment précis de l'envoi,
+si le destinataire a changé depuis : il est mémorisé pour une société nommée,
+pas comme un oui général. Changer de service dans les réglages le redemande.
+
+L'écran reste consultable en permanence : lien « Ce qui est envoyé, et à qui »
+au bas de l'écran d'accueil, et ⚙️ Réglages → « Envoi de données », où l'accord
+peut être retiré.
+
+Les versions 1.0 (3) et 1.0 (4) ont été refusées sur ce point. Dans la 1.0 (4)
+l'écran existait déjà mais n'apparaissait que devant le bouton
+« Transcrire & traduire » ; or la khoutba de démonstration arrive déjà traitée,
+si bien que ce bouton n'a aucune raison d'être actionné. Il est désormais sur
+le chemin obligatoire de tout premier lancement.
+
 La politique de confidentialité en ligne reprend les mêmes éléments : données
-recueillies, comment, tous leurs usages, et le niveau de protection des tiers.
+recueillies, comment elles le sont, tous leurs usages, et le niveau de
+protection offert par les tiers.
 
 2. MODE DÉMO — POUR TESTER SANS CLÉ
 Au premier lancement, appuyez sur « Voir un exemple ». L'application est alors

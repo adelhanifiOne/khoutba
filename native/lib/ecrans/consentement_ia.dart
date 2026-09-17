@@ -18,16 +18,30 @@ import '../theme.dart';
 
 /// Demande l'accord d'envoi et le mémorise. Renvoie vrai si l'utilisateur
 /// accepte ; dans ce cas seulement, l'appelant peut lancer le traitement.
-Future<bool> demanderConsentementIA(BuildContext context, Reglages reglages) async {
+///
+/// [destinatairesForces] sert à l'accueil, où le service n'est pas encore
+/// inscrit dans les réglages mais où l'on sait déjà lequel ce sera.
+/// [memoriser] est faux quand l'appelant enregistrera l'accord lui-même, une
+/// fois les réglages en place — sinon la signature mémorisée serait celle
+/// d'une configuration vide.
+Future<bool> demanderConsentementIA(
+  BuildContext context,
+  Reglages reglages, {
+  List<DestinataireIA>? destinatairesForces,
+  bool memoriser = true,
+}) async {
   final accepte = await Navigator.push<bool>(
     context,
     MaterialPageRoute(
       fullscreenDialog: true,
-      builder: (_) => EcranConsentementIA(reglages: reglages),
+      builder: (_) => EcranConsentementIA(
+        reglages: reglages,
+        destinatairesForces: destinatairesForces,
+      ),
     ),
   );
   if (accepte != true) return false;
-  await reglages.accorderConsentementIA();
+  if (memoriser) await reglages.accorderConsentementIA();
   return true;
 }
 
@@ -43,10 +57,18 @@ Future<void> revoirConsentementIA(BuildContext context, Reglages reglages) {
 }
 
 class EcranConsentementIA extends StatelessWidget {
-  const EcranConsentementIA({super.key, required this.reglages, this.lectureSeule = false});
+  const EcranConsentementIA({
+    super.key,
+    required this.reglages,
+    this.lectureSeule = false,
+    this.destinatairesForces,
+  });
 
   final Reglages reglages;
   final bool lectureSeule;
+
+  /// Destinataires à annoncer quand les réglages ne les portent pas encore.
+  final List<DestinataireIA>? destinatairesForces;
 
   Future<void> _ouvrir(String url) async {
     try {
@@ -59,8 +81,8 @@ class EcranConsentementIA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final destinataires = reglages.destinatairesIA;
-    final demo = reglages.demo;
+    final destinataires = destinatairesForces ?? reglages.destinatairesIA;
+    final demo = reglages.demo && destinatairesForces == null;
 
     return Scaffold(
       appBar: AppBar(
@@ -105,7 +127,9 @@ class EcranConsentementIA extends StatelessWidget {
                 ),
               )
             else
-              ...destinataires.map((d) => _carteDestinataire(context, d)),
+              ...destinataires.asMap().entries.map(
+                    (e) => _carteDestinataire(context, e.value, destinataires, e.key),
+                  ),
             const SizedBox(height: 24),
 
             _titre(context, 'Ce qu’ils en font'),
@@ -206,10 +230,24 @@ class EcranConsentementIA extends StatelessWidget {
         ),
       );
 
-  Widget _carteDestinataire(BuildContext context, DestinataireIA d) {
+  Widget _carteDestinataire(
+    BuildContext context,
+    DestinataireIA d,
+    List<DestinataireIA> tous,
+    int rang,
+  ) {
     final theme = Theme.of(context);
-    final transcrit = reglages.stt == d.id;
-    final redige = reglages.llm == d.id;
+    // Hors réglages établis — à l'accueil — les rôles se déduisent de l'ordre :
+    // le premier transcrit, le dernier rédige, et un service seul fait les deux.
+    final bool transcrit;
+    final bool redige;
+    if (destinatairesForces == null) {
+      transcrit = reglages.stt == d.id;
+      redige = reglages.llm == d.id;
+    } else {
+      transcrit = rang == 0;
+      redige = rang == tous.length - 1;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
