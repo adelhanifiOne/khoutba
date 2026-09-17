@@ -175,11 +175,13 @@ ce questionnaire — mieux vaut la déclarer franchement.
 le premier l'a effectivement fait, deux fois : sur les builds 1.0 (3) et 1.0 (4).
 
 ```
+>>> L'ÉCRAN D'ACCORD EST LE DEUXIÈME ÉCRAN DE L'APPLICATION.        <<<
+>>> LANCEZ L'APP, APPUYEZ SUR « VOIR UN EXEMPLE » : IL S'AFFICHE.   <<<
+>>> AUCUNE CLÉ NI AUCUN COMPTE N'EST NÉCESSAIRE POUR LE VOIR.       <<<
+
 Aucun compte n'est nécessaire pour tester l'application.
 
 1. ACCORD AVANT TOUT ENVOI À UN SERVICE D'IA (règles 5.1.1(i) et 5.1.2(i))
-
->>> C'EST LE DEUXIÈME ÉCRAN DE L'APPLICATION. IMPOSSIBLE DE L'ÉVITER. <<<
 
 Au tout premier lancement, l'écran d'accueil propose deux boutons :
 « Voir un exemple » et « Commencer pour de vrai ». LES DEUX ouvrent
