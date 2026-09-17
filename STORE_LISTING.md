@@ -229,8 +229,9 @@ requise pour évaluer l'app. En mode démo, aucune donnée ne quitte l'appareil.
 Pour un usage réel, l'utilisateur fournit sa propre clé d'un service d'IA
 (Google Gemini, gratuite). L'application ne se contente pas de la demander :
 elle explique à quoi elle sert, ouvre la page de création de la clé d'un
-simple bouton, et vérifie ce qui est collé. Les clés sont stockées dans le trousseau iOS. Aucune clé
-n'est envoyée à l'éditeur, qui n'exploite aucun serveur.
+simple bouton, et vérifie ce qui est collé. Les clés sont stockées dans le
+trousseau iOS. Aucune clé n'est envoyée à l'éditeur, qui n'exploite aucun
+serveur.
 
 4. AUDIO EN ARRIÈRE-PLAN (UIBackgroundModes: audio)
 C'est la raison d'être de l'application. Un prêche du vendredi dure 20 à 40
