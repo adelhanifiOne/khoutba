@@ -18,6 +18,7 @@ import '../etat.dart';
 import '../exemple.dart';
 import '../theme.dart';
 import 'consentement_ia.dart';
+import 'tuto_cle.dart';
 
 class EcranBienvenue extends StatefulWidget {
   const EcranBienvenue({super.key});
@@ -234,7 +235,9 @@ class _EcranBienvenueState extends State<EcranBienvenue> {
               : 'Sur la page : « Create API key », puis copie la clé.',
           style: TextStyle(fontSize: 12.5, color: theme.hintColor, height: 1.5),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 4),
+        const TutoCle(),
+        const SizedBox(height: 16),
         TextField(
           controller: _cle,
           autocorrect: false,

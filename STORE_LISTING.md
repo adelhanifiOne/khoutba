@@ -1,6 +1,6 @@
 # Fiches Store Khoutba — textes prêts à publier
 
-Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.0 (5)
+Bundle ID : `com.adelhanifi.khoutba` · Version : 1.0.1 (6)
 Politique de confidentialité : https://adelhanifione.github.io/khoutba/privacy.html
 
 > Les limites de caractères de chaque champ sont indiquées. Ne pas dépasser.

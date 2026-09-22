@@ -12,6 +12,7 @@ import 'package:khoutba/ecrans/accueil.dart';
 import 'package:khoutba/ecrans/bienvenue.dart';
 import 'package:khoutba/ecrans/consentement_ia.dart';
 import 'package:khoutba/ecrans/detail.dart';
+import 'package:khoutba/ecrans/tuto_cle.dart';
 import 'package:khoutba/enregistreur.dart';
 import 'package:khoutba/etat.dart';
 import 'package:khoutba/exemple.dart';
@@ -480,6 +481,47 @@ void main() {
       expect(find.text('Voir un exemple'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('le tutoriel est replié, puis déroule ses sept étapes', (tester) async {
+      // Replié par défaut : l'écran de saisie doit rester court sur un petit
+      // téléphone, et celui qui sait faire n'a pas à faire défiler sept étapes.
+      tester.view.physicalSize = const Size(750, 1334); // iPhone SE
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(MaterialApp(theme: themeClair(), home: const EcranBienvenue()));
+      await tester.ensureVisible(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer pour de vrai'));
+      await tester.pumpAndSettle();
+      await descendreJusque(tester, find.text('J’accepte l’envoi'));
+      await tester.tap(find.text('J’accepte l’envoi'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Voir les étapes en images'), findsOneWidget);
+      expect(find.text(etapesCle.first.texte), findsNothing);
+
+      await tester.ensureVisible(find.text('Voir les étapes en images'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Voir les étapes en images'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Masquer les étapes'), findsOneWidget);
+      // La dernière étape est la plus facile à oublier : sans elle, la clé est
+      // collée mais jamais enregistrée.
+      expect(find.text(etapesCle.last.texte), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    test('chaque étape de la clé se tient par son texte seul', () {
+      // Deux étapes n'ont pas encore de capture. Une image manquante ne doit
+      // pas laisser une étape muette : le texte porte l'instruction.
+      expect(etapesCle, hasLength(7));
+      for (final e in etapesCle) {
+        expect(e.texte.trim(), isNotEmpty);
+        if (e.image != null) expect(e.image, startsWith('assets/tuto/'));
+      }
     });
 
     testWidgets('la clé n’est acceptée que si elle en a la forme', (tester) async {

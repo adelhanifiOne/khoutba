@@ -6,4 +6,4 @@
 /// d'accueil, ne permettait de distinguer deux versions successives.
 ///
 /// À incrémenter à chaque envoi.
-const versionKhoutba = '2026.09.17-1';
+const versionKhoutba = '2026.09.22-1';
