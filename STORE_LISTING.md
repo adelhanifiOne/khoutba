@@ -18,8 +18,11 @@ Khoutba
 
 **Sous-titre** (max 30) :
 ```
-Le prêche du vendredi, traduit
+Le prêche traduit et résumé
 ```
+> 27 caractères. « Résumé » est le mot que les apps de sous-titrage en direct
+> ne peuvent pas revendiquer : elles rendent un flux de texte, pas une synthèse.
+> Figé avec la version — le changer demande une nouvelle soumission.
 
 **Texte promotionnel** (max 170, modifiable sans review) :
 ```
@@ -72,7 +75,7 @@ Khoutba
 
 **Subtitle** (max 30) :
 ```
-Friday sermon, translated
+Sermon translated & summarized
 ```
 
 **Promotional text** (max 170) :
