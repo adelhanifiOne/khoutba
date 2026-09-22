@@ -24,6 +24,17 @@ Le prêche traduit et résumé
 > ne peuvent pas revendiquer : elles rendent un flux de texte, pas une synthèse.
 > Figé avec la version — le changer demande une nouvelle soumission.
 
+**Nouveautés de cette version** (max 4000) — 1.0.1 :
+```
+Obtenir sa clé Google, en images.
+
+La création de la clé traverse quatre écrans chez Google, puis une demande
+d'autorisation d'iOS que personne n'attend. Sept étapes illustrées vous
+accompagnent désormais pas à pas, depuis l'écran de configuration.
+
+Qu'Allah agrée vos vendredis.
+```
+
 **Texte promotionnel** (max 170, modifiable sans review) :
 ```
 Enregistrez le prêche à la mosquée. De retour chez vous, retrouvez-le en français : texte arabe, traduction complète et résumé des points essentiels.
@@ -76,6 +87,15 @@ Khoutba
 **Subtitle** (max 30) :
 ```
 Sermon translated & summarized
+```
+
+**What's New in This Version** (max 4000) — 1.0.1 :
+```
+Getting your Google key, step by step.
+
+Creating the key takes you through four screens on Google's site, then an iOS
+permission prompt nobody expects. Seven illustrated steps now walk you through
+it, right from the setup screen.
 ```
 
 **Promotional text** (max 170) :
